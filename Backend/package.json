@@ -1,18 +1,29 @@
 {
-  "name": "backend",
+  "name": "hmh-global-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend API for HMH Global Ecommerce platform using Express.js and Appwrite",
+  "main": "app.js",
   "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "ecommerce",
+    "api",
+    "express",
+    "appwrite",
+    "backend"
+  ],
+  "author": "HMH Global Team",
   "license": "ISC",
   "dependencies": {
-    "appwrite": "^18.1.1",
     "cors": "^2.8.5",
     "dotenv": "^17.0.1",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "node-appwrite": "^17.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
