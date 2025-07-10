@@ -1,225 +1,156 @@
-const { databases, DATABASE_ID, COLLECTIONS } = require('../config/appwrite');
-const { ID, Query } = require('node-appwrite');
+const mongoose = require('mongoose');
 
-class Product {
-    constructor() {
-        this.collectionId = COLLECTIONS.PRODUCTS;
-        this.databaseId = DATABASE_ID;
-    }
-
-    // Create a new product
-    async create(productData) {
-        try {
-            const product = await databases.createDocument(
-                this.databaseId,
-                this.collectionId,
-                ID.unique(),
-                {
-                    name: productData.name,
-                    description: productData.description,
-                    price: productData.price,
-                    category: productData.category,
-                    brand: productData.brand,
-                    stock: productData.stock || 0,
-                    images: productData.images || [],
-                    featured: productData.featured || false,
-                    status: productData.status || 'active',
-                    rating: productData.rating || 0,
-                    numReviews: productData.numReviews || 0,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                }
-            );
-            return product;
-        } catch (error) {
-            throw new Error(`Error creating product: ${error.message}`);
+const productSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    description: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    shortDescription: {
+        type: String,
+        trim: true
+    },
+    price: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    salePrice: {
+        type: Number,
+        min: 0
+    },
+    sku: {
+        type: String,
+        required: true,
+        unique: true,
+        uppercase: true
+    },
+    category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+        required: true
+    },
+    subcategory: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category'
+    },
+    brand: {
+        type: String,
+        trim: true
+    },
+    images: [{
+        url: String,
+        alt: String,
+        isPrimary: {
+            type: Boolean,
+            default: false
         }
-    }
-
-    // Get all products with optional filtering
-    async getAll(filters = {}, limit = 25, offset = 0) {
-        try {
-            const queries = [];
-            
-            // Add status filter (active by default)
-            if (filters.status) {
-                queries.push(Query.equal('status', filters.status));
-            } else {
-                queries.push(Query.equal('status', 'active'));
-            }
-
-            // Add category filter
-            if (filters.category) {
-                queries.push(Query.equal('category', filters.category));
-            }
-
-            // Add brand filter
-            if (filters.brand) {
-                queries.push(Query.equal('brand', filters.brand));
-            }
-
-            // Add featured filter
-            if (filters.featured !== undefined) {
-                queries.push(Query.equal('featured', filters.featured));
-            }
-
-            // Add price range filter
-            if (filters.minPrice) {
-                queries.push(Query.greaterThanEqual('price', filters.minPrice));
-            }
-            if (filters.maxPrice) {
-                queries.push(Query.lessThanEqual('price', filters.maxPrice));
-            }
-
-            // Add search query
-            if (filters.search) {
-                queries.push(Query.search('name', filters.search));
-            }
-
-            // Add pagination
-            queries.push(Query.limit(limit));
-            queries.push(Query.offset(offset));
-
-            // Add ordering
-            if (filters.orderBy) {
-                queries.push(Query.orderDesc(filters.orderBy));
-            } else {
-                queries.push(Query.orderDesc('createdAt'));
-            }
-
-            const products = await databases.listDocuments(
-                this.databaseId,
-                this.collectionId,
-                queries
-            );
-            return products;
-        } catch (error) {
-            throw new Error(`Error fetching products: ${error.message}`);
+    }],
+    inventory: {
+        quantity: {
+            type: Number,
+            required: true,
+            min: 0,
+            default: 0
+        },
+        lowStockThreshold: {
+            type: Number,
+            default: 10
+        },
+        trackQuantity: {
+            type: Boolean,
+            default: true
         }
-    }
-
-    // Get a single product by ID
-    async getById(productId) {
-        try {
-            const product = await databases.getDocument(
-                this.databaseId,
-                this.collectionId,
-                productId
-            );
-            return product;
-        } catch (error) {
-            throw new Error(`Error fetching product: ${error.message}`);
+    },
+    specifications: [{
+        name: String,
+        value: String
+    }],
+    tags: [String],
+    weight: {
+        type: Number, // in grams
+        min: 0
+    },
+    dimensions: {
+        length: Number, // in cm
+        width: Number,
+        height: Number
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false
+    },
+    slug: {
+        type: String,
+        unique: true,
+        lowercase: true
+    },
+    ratings: {
+        average: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 5
+        },
+        count: {
+            type: Number,
+            default: 0
         }
+    },
+    views: {
+        type: Number,
+        default: 0
+    },
+    soldCount: {
+        type: Number,
+        default: 0
     }
+}, {
+    timestamps: true
+});
 
-    // Update a product
-    async update(productId, updateData) {
-        try {
-            const product = await databases.updateDocument(
-                this.databaseId,
-                this.collectionId,
-                productId,
-                {
-                    ...updateData,
-                    updatedAt: new Date().toISOString()
-                }
-            );
-            return product;
-        } catch (error) {
-            throw new Error(`Error updating product: ${error.message}`);
-        }
+// Virtual for discount percentage
+productSchema.virtual('discountPercentage').get(function() {
+    if (this.salePrice && this.salePrice < this.price) {
+        return Math.round(((this.price - this.salePrice) / this.price) * 100);
     }
+    return 0;
+});
 
-    // Delete a product
-    async delete(productId) {
-        try {
-            await databases.deleteDocument(
-                this.databaseId,
-                this.collectionId,
-                productId
-            );
-            return { success: true, message: 'Product deleted successfully' };
-        } catch (error) {
-            throw new Error(`Error deleting product: ${error.message}`);
-        }
+// Virtual for effective price
+productSchema.virtual('effectivePrice').get(function() {
+    return this.salePrice && this.salePrice < this.price ? this.salePrice : this.price;
+});
+
+// Virtual for stock status
+productSchema.virtual('stockStatus').get(function() {
+    if (!this.inventory.trackQuantity) return 'in-stock';
+    if (this.inventory.quantity === 0) return 'out-of-stock';
+    if (this.inventory.quantity <= this.inventory.lowStockThreshold) return 'low-stock';
+    return 'in-stock';
+});
+
+// Pre-save middleware to generate slug
+productSchema.pre('save', function(next) {
+    if (this.isModified('name')) {
+        this.slug = this.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     }
+    next();
+});
 
-    // Get featured products
-    async getFeatured(limit = 8) {
-        try {
-            const products = await databases.listDocuments(
-                this.databaseId,
-                this.collectionId,
-                [
-                    Query.equal('featured', true),
-                    Query.equal('status', 'active'),
-                    Query.limit(limit),
-                    Query.orderDesc('createdAt')
-                ]
-            );
-            return products;
-        } catch (error) {
-            throw new Error(`Error fetching featured products: ${error.message}`);
-        }
-    }
+// Index for search
+productSchema.index({ name: 'text', description: 'text', tags: 'text' });
+productSchema.index({ category: 1, isActive: 1 });
+productSchema.index({ price: 1 });
+productSchema.index({ 'ratings.average': -1 });
 
-    // Get products by category
-    async getByCategory(category, limit = 25, offset = 0) {
-        try {
-            const products = await databases.listDocuments(
-                this.databaseId,
-                this.collectionId,
-                [
-                    Query.equal('category', category),
-                    Query.equal('status', 'active'),
-                    Query.limit(limit),
-                    Query.offset(offset),
-                    Query.orderDesc('createdAt')
-                ]
-            );
-            return products;
-        } catch (error) {
-            throw new Error(`Error fetching products by category: ${error.message}`);
-        }
-    }
-
-    // Search products
-    async search(searchTerm, limit = 25, offset = 0) {
-        try {
-            const products = await databases.listDocuments(
-                this.databaseId,
-                this.collectionId,
-                [
-                    Query.search('name', searchTerm),
-                    Query.equal('status', 'active'),
-                    Query.limit(limit),
-                    Query.offset(offset)
-                ]
-            );
-            return products;
-        } catch (error) {
-            throw new Error(`Error searching products: ${error.message}`);
-        }
-    }
-
-    // Update product stock
-    async updateStock(productId, quantity) {
-        try {
-            const product = await this.getById(productId);
-            const newStock = product.stock + quantity;
-            
-            if (newStock < 0) {
-                throw new Error('Insufficient stock');
-            }
-
-            const updatedProduct = await this.update(productId, {
-                stock: newStock
-            });
-            return updatedProduct;
-        } catch (error) {
-            throw new Error(`Error updating stock: ${error.message}`);
-        }
-    }
-}
-
-module.exports = Product;
+module.exports = mongoose.model('Product', productSchema);

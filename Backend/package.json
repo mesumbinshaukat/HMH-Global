@@ -1,29 +1,33 @@
 {
   "name": "hmh-global-backend",
   "version": "1.0.0",
-  "description": "Backend API for HMH Global Ecommerce platform using Express.js and Appwrite",
-  "main": "app.js",
+  "description": "Backend API for HMH Global Ecommerce platform using Express.js and MongoDB",
+  "main": "index.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "node test-api.js"
   },
   "keywords": [
     "ecommerce",
     "api",
     "express",
-    "appwrite",
+    "mongodb",
     "backend"
   ],
   "author": "HMH Global Team",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
-    "dotenv": "^17.0.1",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "node-appwrite": "^17.0.0"
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.15.0",
+    "multer": "^2.0.0",
+    "nodemailer": "^7.0.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "axios": "^1.6.0"
   }
 }

@@ -1,0 +1,171 @@
+# API Documentation
+
+## User Authentication
+
+### Register a User
+- **URL:** `http://localhost:5000/api/users/register`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "name": "Huzaifa",
+    "email": "huzaifairfan2144@gmail.com",
+    "password": "Owner123",
+    "role": "customer"
+  }
+  ```
+- **Headers:** None
+
+### Login
+- **URL:** `http://localhost:5000/api/users/login`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "email": "huzaifairfan2144@gmail.com",
+    "password": "Owner123"
+  }
+  ```
+- **Headers:** None
+
+### Verify Email
+- **URL:** `http://localhost:5000/api/users/verify-email/:token`
+- **Method:** `GET`
+- **Headers:** None
+
+## Categories
+
+### Create a Category
+- **URL:** `http://localhost:5000/api/categories`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "name": "Electronics",
+    "description": "Devices and gadgets"
+  }
+  ```
+- **Headers:**
+  ```json
+  {
+    "Authorization": "Bearer <token>"
+  }
+  ```
+
+### Get All Categories
+- **URL:** `http://localhost:5000/api/categories`
+- **Method:** `GET`
+- **Headers:** None
+
+## Products
+
+### Create a Product
+- **URL:** `http://localhost:5000/api/products`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "name": "Smartphone",
+    "description": "Latest model with advanced features",
+    "price": 299,
+    "sku": "SP123",
+    "category": "<category_id>"
+  }
+  ```
+- **Headers:**
+  ```json
+  {
+    "Authorization": "Bearer <token>"
+  }
+  ```
+
+### Get All Products
+- **URL:** `http://localhost:5000/api/products`
+- **Method:** `GET`
+- **Headers:** None
+
+## Cart
+
+### Get User Cart
+- **URL:** `http://localhost:5000/api/cart`
+- **Method:** `GET`
+- **Headers:**
+  ```json
+  {
+    "Authorization": "Bearer <token>"
+  }
+  ```
+
+### Add Item to Cart
+- **URL:** `http://localhost:5000/api/cart/add`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "productId": "<product_id>",
+    "quantity": 2
+  }
+  ```
+- **Headers:**
+  ```json
+  {
+    "Authorization": "Bearer <token>"
+  }
+  ```
+
+## Orders
+
+### Create Order
+- **URL:** `http://localhost:5000/api/orders`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "paymentMethod": "credit-card",
+    "shippingAddress": { ... },
+    "billingAddress": { ... }
+  }
+  ```
+- **Headers:**
+  ```json
+  {
+    "Authorization": "Bearer <token>"
+  }
+  ```
+
+### Get User Orders
+- **URL:** `http://localhost:5000/api/orders/my-orders`
+- **Method:** `GET`
+- **Headers:**
+  ```json
+  {
+    "Authorization": "Bearer <token>"
+  }
+  ```
+
+## Reviews
+
+### Create Review
+- **URL:** `http://localhost:5000/api/reviews`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "productId": "<product_id>",
+    "rating": 5,
+    "title": "Great product",
+    "comment": "I am very satisfied"
+  }
+  ```
+- **Headers:**
+  ```json
+  {
+    "Authorization": "Bearer <token>"
+  }
+  ```
+
+### Get Product Reviews
+- **URL:** `http://localhost:5000/api/reviews/product/:productId`
+- **Method:** `GET`
+- **Headers:** None
+

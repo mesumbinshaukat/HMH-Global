@@ -1,55 +1,25 @@
-const { account } = require('../config/appwrite');
+const jwt = require('jsonwebtoken');
 
-// Middleware to authenticate user
-const authenticate = async (req, res, next) => {
+const auth = (req, res, next) => {
     try {
-        const sessionId = req.headers.authorization?.replace('Bearer ', '');
-        
-        if (!sessionId) {
-            return res.status(401).json({
-                success: false,
-                message: 'Access denied. No token provided.'
-            });
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ message: 'Authorization token missing or malformed' });
         }
 
-        // Set the session for the current request
-        const client = req.app.locals.client;
-        client.setSession(sessionId);
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Get current user to verify session
-        const user = await account.get();
-        req.user = user;
+        req.user = {
+            userId: decoded.userId,
+            role: decoded.role,
+        };
+
         next();
     } catch (error) {
-        res.status(401).json({
-            success: false,
-            message: 'Invalid token.'
-        });
+        return res.status(401).json({ message: 'Invalid or expired token' });
     }
 };
 
-// Middleware to check if user is admin
-const authorize = (...roles) => {
-    return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Access denied. Please authenticate first.'
-            });
-        }
-
-        if (roles.length && !roles.includes(req.user.prefs?.role)) {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Insufficient permissions.'
-            });
-        }
-
-        next();
-    };
-};
-
-module.exports = {
-    authenticate,
-    authorize
-};
+module.exports = auth;
