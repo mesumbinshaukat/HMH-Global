@@ -31,7 +31,10 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Complete billing address is required' });
         }
 
-        const cart = await Cart.findOne({ user: req.user.userId }).populate('items.product');
+        const cart = await Cart.findOne({ user: req.user.userId }).populate({
+            path: 'items.product',
+            select: 'name sku price salePrice inventory isActive'
+        });
 
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ success: false, message: 'Cart is empty' });

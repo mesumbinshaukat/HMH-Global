@@ -76,7 +76,13 @@ exports.getAllProducts = async (req, res) => {
         // Build filter object
         const filter = {};
         
-        if (isActive !== undefined) filter.isActive = isActive === 'true';
+        // Only add isActive filter if explicitly set to false, otherwise show active products by default
+        if (isActive === 'false') {
+            filter.isActive = false;
+        } else {
+            filter.isActive = true;
+        }
+        
         if (isFeatured !== undefined) filter.isFeatured = isFeatured === 'true';
         if (category) filter.category = category;
         if (subcategory) filter.subcategory = subcategory;

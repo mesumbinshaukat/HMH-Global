@@ -49,7 +49,7 @@ const createUser = async (req, res) => {
         const verifyLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
         await transporter.sendMail({
-            from: `"SmartDine" <${process.env.SMTP_USER.replace(/'/g, "")}>`,
+            from: `"HMH Global" <${process.env.SMTP_USER.replace(/'/g, "")}>`,
             to: newUser.email,
             subject: "Action Required: Confirm Your Email",
             text: `Hello ${newUser.name}, please verify your email by visiting: ${verifyLink}`,

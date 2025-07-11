@@ -84,8 +84,7 @@ const shippingAddressSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
     orderNumber: {
         type: String,
-        unique: true,
-        required: true
+        unique: true
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -180,12 +179,18 @@ const orderSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware to generate order number
-orderSchema.pre('save', async function(next) {
-    if (this.isNew) {
-        const count = await mongoose.model('Order').countDocuments();
-        this.orderNumber = `ORD-${Date.now()}-${(count + 1).toString().padStart(4, '0')}`;
+orderSchema.pre('validate', async function(next) {
+    if (this.isNew && !this.orderNumber) {
+        try {
+            const count = await mongoose.model('Order').countDocuments();
+            this.orderNumber = `ORD-${Date.now()}-${(count + 1).toString().padStart(4, '0')}`;
+            next();
+        } catch (err) {
+            next(err);
+        }
+    } else {
+        next();
     }
-    next();
 });
 
 // Index for efficient queries

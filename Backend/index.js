@@ -18,12 +18,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.get("/", (req, res) => res.send("HMH Global E-commerce API Running"));
-app.use("/api/users", require('./routes/UserRoutes'));
-app.use("/api/categories", require('./routes/CategoryRoutes'));
-app.use("/api/products", require('./routes/ProductRoutes'));
-app.use("/api/cart", require('./routes/CartRoutes'));
-app.use("/api/orders", require('./routes/OrderRoutes'));
-app.use("/api/reviews", require('./routes/ReviewRoutes'));
+app.use("/api/users", require('./routes/UserRoutes')); //checked
+app.use("/api/categories", require('./routes/CategoryRoutes')); //checked
+app.use("/api/products", require('./routes/ProductRoutes')); //checked
+app.use("/api/cart", require('./routes/CartRoutes')); //checked
+app.use("/api/orders", require('./routes/OrderRoutes')); //checked (Email isn't sending on Order Placement, other than that it works fine)
+app.use("/api/reviews", require('./routes/ReviewRoutes')); //checked
 
 // Start the server
 const PORT = process.env.PORT || 5000;
