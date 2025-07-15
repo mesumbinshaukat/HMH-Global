@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { User, Cart, Product } from '../types'
+import { User, Cart } from '../types'
 import { authService } from '../services/auth'
 
 interface AuthState {

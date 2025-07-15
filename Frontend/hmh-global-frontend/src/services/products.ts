@@ -3,11 +3,21 @@ import { Product, ProductFilters, ApiResponse, PaginatedResponse } from '../type
 
 export const productService = {
   async getProducts(filters?: ProductFilters, page = 1, limit = 12): Promise<ApiResponse<PaginatedResponse<Product>>> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...filters
-    } as Record<string, string>)
+    const params = new URLSearchParams()
+    params.append('page', page.toString())
+    params.append('limit', limit.toString())
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          if (Array.isArray(value)) {
+            value.forEach(v => params.append(key, v.toString()))
+          } else {
+            params.append(key, value.toString())
+          }
+        }
+      })
+    }
     
     return api.get(`/api/products?${params}`)
   },

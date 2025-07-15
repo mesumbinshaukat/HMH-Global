@@ -101,16 +101,16 @@ const Footer: React.FC = () => {
             © 2024 HMH Global. All rights reserved.
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
               Facebook
             </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
               Twitter
             </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
               Instagram
             </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
               LinkedIn
             </a>
           </div>

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, ShoppingCart, User, Menu, X } from 'lucide-react'
+import { Search, ShoppingCart, Menu, X } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { useAuthStore, useUIStore } from '../../store'
@@ -211,3 +211,5 @@ const Header: React.FC = () => {
     </header>
   )
 }
+
+export default Header
