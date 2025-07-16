@@ -13,6 +13,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true, // Always send cookies (for sessionId)
     })
 
     this.setupInterceptors()
@@ -27,9 +28,16 @@ class ApiService {
           config.headers.Authorization = `Bearer ${token}`
         }
         console.log(`[API] Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
+        if (config.headers.Authorization) {
+          console.log(`[API] Auth header: ${config.headers.Authorization}`)
+        }
+        if (config.data) {
+          console.log('[API] Request data:', config.data)
+        }
         return config
       },
       (error) => {
+        console.error('[API] Request error:', error)
         return Promise.reject(error)
       }
     )
@@ -38,6 +46,9 @@ class ApiService {
     this.instance.interceptors.response.use(
       (response) => {
         console.log(`[API] Response: ${response.status} ${response.config.url}`)
+        if (response.data) {
+          console.log('[API] Response data:', response.data)
+        }
         return response
       },
       (error) => {
@@ -47,10 +58,9 @@ class ApiService {
           localStorage.removeItem('user')
           window.location.href = '/login'
         }
-
         const message = error.response?.data?.message || error.message || 'An error occurred'
         toast.error(message)
-        console.log(`[API] Error: ${message} (${error.config?.url})`)
+        console.error(`[API] Error: ${message} (${error.config?.url})`, error)
         return Promise.reject(error)
       }
     )

@@ -14,6 +14,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const createUser = async (req, res) => {
+    console.log('[UserController] createUser called. body:', req.body);
     try {
         const { name, email, password, role} = req.body;
 
@@ -74,8 +75,25 @@ const createUser = async (req, res) => {
             });
         }
 
-        res.status(201).json({ message: isAdmin ? "Admin user created." : "User created. Please verify your email." });
+        // Split name into firstName and lastName
+        const [firstName, ...rest] = (newUser.name || '').split(' ');
+        const lastName = rest.join(' ');
+        res.status(201).json({ 
+            message: isAdmin ? "Admin user created." : "User created. Please verify your email.",
+            user: {
+                id: newUser._id,
+                email: newUser.email,
+                firstName: firstName || newUser.name,
+                lastName: lastName || '',
+                role: newUser.role,
+                profilePicture: newUser.profilePicture,
+                createdAt: newUser.createdAt,
+                updatedAt: newUser.updatedAt,
+                isEmailVerified: newUser.emailVerified
+            }
+        });
     } catch (error) {
+        console.error('[UserController] createUser error:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -103,9 +121,10 @@ const verifyEmail = async (req, res) => {
 
 const loginUser = async (req, res) => {
     const { email, password} = req.body;
-
+    console.log('[UserController] loginUser called. email:', email);
     try {
         const user = await User.findOne({ email });
+        console.log('[UserController] loginUser found user:', user);
         if (!user) return res.status(401).json({ message: 'Invalid email' });
 
         // Allow admin login even if email not verified
@@ -123,17 +142,30 @@ const loginUser = async (req, res) => {
             html: `<p>Hello ${user.name},</p><p>You just logged in from a new device.</p>`
         });
 
+        // Split name into firstName and lastName
+        const [firstName, ...rest] = (user.name || '').split(' ');
+        const lastName = rest.join(' ');
+
         res.json({
+            success: true,
             message: "Login successful",
-            token,
-            user: {
-                name: user.name,
-                email: user.email,
-                profilePicture: user.profilePicture,
-                role: user.role
-            },
+            data: {
+                token,
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    firstName: firstName || user.name,
+                    lastName: lastName || '',
+                    role: user.role,
+                    profilePicture: user.profilePicture,
+                    createdAt: user.createdAt,
+                    updatedAt: user.updatedAt,
+                    isEmailVerified: user.emailVerified
+                }
+            }
         });
     } catch (error) {
+        console.error('[UserController] loginUser error:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -144,12 +176,18 @@ const getProfile = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-
+        const [firstName, ...rest] = (user.name || '').split(' ');
+        const lastName = rest.join(' ');
         res.json({
-            name: user.name,
+            id: user._id,
             email: user.email,
+            firstName: firstName || user.name,
+            lastName: lastName || '',
+            role: user.role,
             profilePicture: user.profilePicture,
-            role: user.role
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            isEmailVerified: user.emailVerified
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
@@ -159,25 +197,28 @@ const getProfile = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const { name, profilePicture } = req.body;
-
         const user = await User.findById(req.user.userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
         if (name) user.name = name;
         if (profilePicture) user.profilePicture = profilePicture;
-
         user.updatedAt = Date.now();
-
         await user.save();
-
+        const [firstName, ...rest] = (user.name || '').split(' ');
+        const lastName = rest.join(' ');
         res.json({
             message: "User updated successfully",
             user: {
-                name: user.name,
+                id: user._id,
                 email: user.email,
+                firstName: firstName || user.name,
+                lastName: lastName || '',
+                role: user.role,
                 profilePicture: user.profilePicture,
-                role: user.role
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+                isEmailVerified: user.emailVerified
             },
         });
     } catch (error) {

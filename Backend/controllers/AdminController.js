@@ -23,13 +23,52 @@ exports.getStats = async (req, res) => {
 // Trigger web scraper for northwest-cosmetics.com
 exports.scrapeNorthwestCosmetics = async (req, res) => {
     try {
+        console.log('[AdminController] Starting Northwest Cosmetics scraper...');
+        
         // Path to the scraper script
         const scriptPath = path.join(__dirname, '../scripts/scrapeNorthwestCosmetics.js');
+        
+        // Check if script exists
+        if (!require('fs').existsSync(scriptPath)) {
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Scraper script not found',
+                path: scriptPath
+            });
+        }
+        
         // Spawn a child process to run the scraper
-        const scraper = spawn('node', [scriptPath], { stdio: 'ignore', detached: true });
+        const scraper = spawn('node', [scriptPath], { 
+            stdio: ['ignore', 'pipe', 'pipe'],
+            detached: true 
+        });
+        
+        // Log output for debugging
+        scraper.stdout.on('data', (data) => {
+            console.log(`[Scraper] ${data.toString()}`);
+        });
+        
+        scraper.stderr.on('data', (data) => {
+            console.error(`[Scraper Error] ${data.toString()}`);
+        });
+        
+        scraper.on('close', (code) => {
+            console.log(`[Scraper] Process exited with code ${code}`);
+        });
+        
         scraper.unref();
-        res.json({ success: true, message: 'Scraper started' });
+        
+        res.json({ 
+            success: true, 
+            message: 'Northwest Cosmetics scraper started successfully. Check server logs for progress.',
+            timestamp: new Date().toISOString()
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to start scraper', error: error.message });
+        console.error('[AdminController] Error starting scraper:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to start scraper', 
+            error: error.message 
+        });
     }
-}; 
+};

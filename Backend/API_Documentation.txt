@@ -84,17 +84,23 @@
 - **Method:** `GET`
 - **Headers:** None
 
-## Cart
+## Cart (Hybrid: Guest or User)
 
-### Get User Cart
+### How it works
+- **Guest users:** Cart is stored in backend, identified by a sessionId cookie (set automatically by server).
+- **Logged-in users:** Cart is tied to user account (JWT required).
+- **On login:** Guest cart (by sessionId) can be merged into user cart via /api/cart/merge.
+
+### Session Cookie
+- The backend sets a `sessionId` cookie for guests (httpOnly, 7 days).
+- The frontend should send credentials (cookies) with all cart requests.
+
+### Get Cart
 - **URL:** `http://localhost:5000/api/cart`
 - **Method:** `GET`
 - **Headers:**
-  ```json
-  {
-    "Authorization": "Bearer <token>"
-  }
-  ```
+  - For guests: none (cookie sent automatically)
+  - For users: `Authorization: Bearer <token>`
 
 ### Add Item to Cart
 - **URL:** `http://localhost:5000/api/cart/add`
@@ -107,65 +113,53 @@
   }
   ```
 - **Headers:**
-  ```json
-  {
-    "Authorization": "Bearer <token>"
-  }
-  ```
+  - For guests: none (cookie sent automatically)
+  - For users: `Authorization: Bearer <token>`
 
-## Orders
-
-### Create Order
-- **URL:** `http://localhost:5000/api/orders`
-- **Method:** `POST`
-- **Payload:**
-  ```json
-  {
-    "paymentMethod": "credit-card",
-    "shippingAddress": { ... },
-    "billingAddress": { ... }
-  }
-  ```
-- **Headers:**
-  ```json
-  {
-    "Authorization": "Bearer <token>"
-  }
-  ```
-
-### Get User Orders
-- **URL:** `http://localhost:5000/api/orders/my-orders`
-- **Method:** `GET`
-- **Headers:**
-  ```json
-  {
-    "Authorization": "Bearer <token>"
-  }
-  ```
-
-## Reviews
-
-### Create Review
-- **URL:** `http://localhost:5000/api/reviews`
-- **Method:** `POST`
+### Update Item Quantity
+- **URL:** `http://localhost:5000/api/cart/update`
+- **Method:** `PUT`
 - **Payload:**
   ```json
   {
     "productId": "<product_id>",
-    "rating": 5,
-    "title": "Great product",
-    "comment": "I am very satisfied"
+    "quantity": 3
   }
   ```
 - **Headers:**
+  - For guests: none (cookie sent automatically)
+  - For users: `Authorization: Bearer <token>`
+
+### Remove Item from Cart
+- **URL:** `http://localhost:5000/api/cart/remove/<product_id>`
+- **Method:** `DELETE`
+- **Headers:**
+  - For guests: none (cookie sent automatically)
+  - For users: `Authorization: Bearer <token>`
+
+### Clear Cart
+- **URL:** `http://localhost:5000/api/cart/clear`
+- **Method:** `DELETE`
+- **Headers:**
+  - For guests: none (cookie sent automatically)
+  - For users: `Authorization: Bearer <token>`
+
+### Merge Guest Cart into User Cart (on login)
+- **URL:** `http://localhost:5000/api/cart/merge`
+- **Method:** `POST`
+- **Headers:**
+  - `Authorization: Bearer <token>` (user must be logged in)
+  - Cookie: `sessionId` (sent automatically)
+- **Payload:**
   ```json
   {
-    "Authorization": "Bearer <token>"
+    // Optionally, can include userId if not using JWT auth
   }
   ```
+- **Description:**
+  - Merges the guest cart (by sessionId) into the logged-in user's cart. After merging, the guest cart is deleted.
 
-### Get Product Reviews
-- **URL:** `http://localhost:5000/api/reviews/product/:productId`
-- **Method:** `GET`
-- **Headers:** None
+## Orders
 
+### Create Order
+- **URL:** `

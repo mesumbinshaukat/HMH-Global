@@ -18,6 +18,7 @@ function getOrSetSessionId(req, res) {
 
 // Get cart (user or guest)
 exports.getCart = async (req, res) => {
+    console.log('[CartController] getCart called. req.user:', req.user, 'req.cookies:', req.cookies);
     try {
         let cart;
         if (req.user) {
@@ -32,12 +33,14 @@ exports.getCart = async (req, res) => {
         }
         res.status(200).json({ success: true, cart });
     } catch (error) {
+        console.error('[CartController] getCart error:', error);
         res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
     }
 };
 
 // Add item to cart
 exports.addItemToCart = async (req, res) => {
+    console.log('[CartController] addItemToCart called. req.user:', req.user, 'req.cookies:', req.cookies, 'body:', req.body);
     try {
         const { productId, quantity = 1 } = req.body;
         if (!productId) {
@@ -71,12 +74,14 @@ exports.addItemToCart = async (req, res) => {
         await cart.populate('items.product');
         res.status(200).json({ success: true, cart, message: 'Item added to cart successfully' });
     } catch (error) {
+        console.error('[CartController] addItemToCart error:', error);
         res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
     }
 };
 
 // Update item quantity
 exports.updateCartItem = async (req, res) => {
+    console.log('[CartController] updateCartItem called. req.user:', req.user, 'req.cookies:', req.cookies, 'body:', req.body);
     try {
         const { productId, quantity } = req.body;
         let cart;
@@ -91,12 +96,14 @@ exports.updateCartItem = async (req, res) => {
         await cart.save();
         res.status(200).json({ success: true, cart });
     } catch (error) {
+        console.error('[CartController] updateCartItem error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 // Remove item from cart
 exports.removeItemFromCart = async (req, res) => {
+    console.log('[CartController] removeItemFromCart called. req.user:', req.user, 'req.cookies:', req.cookies, 'params:', req.params);
     try {
         const { productId } = req.params;
         let cart;
@@ -111,12 +118,14 @@ exports.removeItemFromCart = async (req, res) => {
         await cart.save();
         res.status(200).json({ success: true, cart });
     } catch (error) {
+        console.error('[CartController] removeItemFromCart error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 // Clear cart
 exports.clearCart = async (req, res) => {
+    console.log('[CartController] clearCart called. req.user:', req.user, 'req.cookies:', req.cookies);
     try {
         let cart;
         if (req.user) {
@@ -130,12 +139,14 @@ exports.clearCart = async (req, res) => {
         await cart.save();
         res.status(200).json({ success: true, message: "Cart cleared" });
     } catch (error) {
+        console.error('[CartController] clearCart error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 // Merge guest cart into user cart on login
 exports.mergeCart = async (req, res) => {
+    console.log('[CartController] mergeCart called. req.user:', req.user, 'req.cookies:', req.cookies, 'body:', req.body);
     try {
         const { sessionId } = req.cookies;
         const userId = req.user?.userId || req.body.userId;
@@ -160,6 +171,7 @@ exports.mergeCart = async (req, res) => {
         }
         res.status(200).json({ success: true, cart: userCart });
     } catch (error) {
+        console.error('[CartController] mergeCart error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

@@ -12,11 +12,12 @@ import { authService } from '../../services/auth'
 import { useAuthStore } from '../../store'
 import { toast } from 'sonner'
 import { Eye, EyeOff } from 'lucide-react'
+import { useEffect } from 'react'
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login } = useAuthStore()
+  const { user, isAuthenticated, login } = useAuthStore()
   const [showPassword, setShowPassword] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
 
@@ -35,8 +36,17 @@ const LoginPage: React.FC = () => {
       if (response.success && response.data) {
         login(response.data.user, response.data.token)
         toast.success('Welcome back!')
-        const from = location.state?.from?.pathname || '/'
-        navigate(from, { replace: true })
+        // Debug logs
+        console.log('[LoginPage] onSubmit: user', response.data.user)
+        // Redirect admin to admin dashboard, others to previous or home
+        if (response.data.user.role === 'admin') {
+          console.log('[LoginPage] onSubmit: Redirecting to /admin')
+          navigate('/admin', { replace: true })
+          console.log('[LoginPage] onSubmit: After navigate')
+        } else {
+          const from = location.state?.from?.pathname || '/'
+          navigate(from, { replace: true })
+        }
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Login failed')
@@ -44,6 +54,16 @@ const LoginPage: React.FC = () => {
       setIsLoading(false)
     }
   }
+
+  // Ensure admin is redirected if already authenticated
+  useEffect(() => {
+    console.log('[LoginPage] useEffect: isAuthenticated', isAuthenticated, 'user', user)
+    if (isAuthenticated && user?.role === 'admin') {
+      console.log('[LoginPage] useEffect: Redirecting to /admin')
+      navigate('/admin', { replace: true })
+      console.log('[LoginPage] useEffect: After navigate')
+    }
+  }, [isAuthenticated, user, navigate])
 
   return (
     <>

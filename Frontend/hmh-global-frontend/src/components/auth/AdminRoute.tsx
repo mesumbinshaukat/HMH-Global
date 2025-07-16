@@ -7,17 +7,15 @@ interface AdminRouteProps {
 }
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { isAuthenticated, user } = useAuthStore()
+  const { user, isAuthenticated } = useAuthStore()
+  console.log('[AdminRoute] user:', user, 'isAuthenticated:', isAuthenticated)
   const location = useLocation()
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || user?.role !== 'admin') {
+    console.log('[AdminRoute] Access denied. Redirecting to /login')
     return <Navigate to="/login" state={{ from: location }} replace />
   }
-
-  if (user?.role !== 'admin') {
-    return <Navigate to="/" replace />
-  }
-
+  console.log('[AdminRoute] Access granted. Rendering admin content.')
   return <>{children}</>
 }
 
