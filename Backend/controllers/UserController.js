@@ -35,43 +35,46 @@ const createUser = async (req, res) => {
 
         const hashedPassword = await bcryptjs.hash(password, 10);
 
+        const isAdmin = role === 'admin';
         const newUser = new User({
             name,
             email,
             password: hashedPassword,
-            emailVerified: false,
+            emailVerified: isAdmin ? true : false,
             role
         });
 
         await newUser.save();
 
-        const verificationToken = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-        const verifyLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+        if (!isAdmin) {
+            const verificationToken = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+            const verifyLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
-        await transporter.sendMail({
-            from: `"HMH Global" <${process.env.SMTP_USER.replace(/'/g, "")}>`,
-            to: newUser.email,
-            subject: "Action Required: Confirm Your Email",
-            text: `Hello ${newUser.name}, please verify your email by visiting: ${verifyLink}`,
-            html: `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8" />
-      <title>Verify Your Email</title>
-    </head>
-    <body>
-      <h2>Hello ${newUser.name},</h2>
-      <p>Thanks for signing up for HMH Global. Please verify your email within 24 hours by clicking the link below:</p>
-      <a href="${verifyLink}" style="padding: 10px 15px; background-color: #4CAF50; color: white; text-decoration: none;">Verify Email</a>
-      <p>If the button doesn't work, copy and paste this link into your browser:</p>
-      <p>${verifyLink}</p>
-    </body>
-    </html>            
-            `
-        });
+            await transporter.sendMail({
+                from: `"HMH Global" <${process.env.SMTP_USER.replace(/'/g, "")}>`,
+                to: newUser.email,
+                subject: "Action Required: Confirm Your Email",
+                text: `Hello ${newUser.name}, please verify your email by visiting: ${verifyLink}`,
+                html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Verify Your Email</title>
+        </head>
+        <body>
+          <h2>Hello ${newUser.name},</h2>
+          <p>Thanks for signing up for HMH Global. Please verify your email within 24 hours by clicking the link below:</p>
+          <a href="${verifyLink}" style="padding: 10px 15px; background-color: #4CAF50; color: white; text-decoration: none;">Verify Email</a>
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p>${verifyLink}</p>
+        </body>
+        </html>            
+                `
+            });
+        }
 
-        res.status(201).json({ message: "User created. Please verify your email." });
+        res.status(201).json({ message: isAdmin ? "Admin user created." : "User created. Please verify your email." });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -105,7 +108,8 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) return res.status(401).json({ message: 'Invalid email' });
 
-        if (!user.emailVerified) return res.status(401).json({ message: 'Please verify your email first' });
+        // Allow admin login even if email not verified
+        if (!user.emailVerified && user.role !== 'admin') return res.status(401).json({ message: 'Please verify your email first' });
 
         const isPasswordValid = await bcryptjs.compare(password, user.password);
         if (!isPasswordValid) return res.status(401).json({ message: 'Invalid password' });

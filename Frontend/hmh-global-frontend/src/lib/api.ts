@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { toast } from 'sonner'
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001'
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'
 
 class ApiService {
   private instance: AxiosInstance
@@ -26,6 +26,7 @@ class ApiService {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
+        console.log(`[API] Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
         return config
       },
       (error) => {
@@ -36,10 +37,12 @@ class ApiService {
     // Response interceptor
     this.instance.interceptors.response.use(
       (response) => {
+        console.log(`[API] Response: ${response.status} ${response.config.url}`)
         return response
       },
       (error) => {
         if (error.response?.status === 401) {
+          console.log('[API] 401 Unauthorized - clearing token and redirecting to /login')
           localStorage.removeItem('token')
           localStorage.removeItem('user')
           window.location.href = '/login'
@@ -47,7 +50,7 @@ class ApiService {
 
         const message = error.response?.data?.message || error.message || 'An error occurred'
         toast.error(message)
-        
+        console.log(`[API] Error: ${message} (${error.config?.url})`)
         return Promise.reject(error)
       }
     )

@@ -5,17 +5,18 @@ const {
     addItemToCart,
     updateCartItem,
     removeItemFromCart,
-    clearCart
+    clearCart,
+    mergeCart
 } = require('../controllers/CartController');
-const authMiddleware = require('../middleware/auth');
 
-// All cart routes require authentication
-router.use(authMiddleware);
-
+// Public routes (hybrid: guest via sessionId cookie, user via JWT)
 router.get('/', getCart);
 router.post('/add', addItemToCart);
 router.put('/update', updateCartItem);
 router.delete('/remove/:productId', removeItemFromCart);
 router.delete('/clear', clearCart);
+
+// Merge guest cart into user cart on login
+router.post('/merge', mergeCart);
 
 module.exports = router;

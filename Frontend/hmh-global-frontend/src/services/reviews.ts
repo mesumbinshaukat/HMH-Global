@@ -10,6 +10,10 @@ export const reviewService = {
     return api.post('/api/reviews', data)
   },
 
+  async addReview(productId: string, data: { rating: number; title: string; comment: string }): Promise<ApiResponse<Review>> {
+    return api.post(`/api/reviews/product/${productId}`, data)
+  },
+
   async updateReview(id: string, data: Partial<Review>): Promise<ApiResponse<Review>> {
     return api.put(`/api/reviews/${id}`, data)
   },

@@ -20,5 +20,13 @@ export const cartService = {
 
   async clearCart(): Promise<ApiResponse<{ message: string }>> {
     return api.delete('/api/cart/clear')
+  },
+
+  async updateCartItem(productId: string, quantity: number): Promise<ApiResponse<Cart>> {
+    return api.put(`/api/cart/item/${productId}`, { quantity })
+  },
+
+  async applyCoupon(code: string): Promise<ApiResponse<{ discount: number; message: string }>> {
+    return api.post('/api/cart/coupon', { code })
   }
 }

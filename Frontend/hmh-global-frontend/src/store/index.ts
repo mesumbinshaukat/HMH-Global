@@ -14,7 +14,7 @@ interface AuthState {
 interface CartState {
   cart: Cart | null
   isLoading: boolean
-  setCart: (cart: Cart) => void
+  setCart: (cart: Cart | null) => void
   clearCart: () => void
   setLoading: (loading: boolean) => void
 }
