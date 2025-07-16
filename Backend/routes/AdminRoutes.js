@@ -13,4 +13,7 @@ router.get('/stats', AdminController.getStats);
 // Trigger web scraper for northwest-cosmetics.com
 router.post('/scrape-northwest', AdminController.scrapeNorthwestCosmetics);
 
+// SSE progress endpoint (public for now)
+router.get('/scrape-progress', AdminController.scrapeProgressSSE);
+
 module.exports = router; 

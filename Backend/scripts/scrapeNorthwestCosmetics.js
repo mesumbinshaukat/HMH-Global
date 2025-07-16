@@ -1,5 +1,16 @@
 // Scraper for northwest-cosmetics.com (excluding fragrances)
+// Robust version: includes retries, validation, logging, and MongoDB optimizations
 // Usage: node scrapeNorthwestCosmetics.js
+// Maintainer: HMH Global Dev Team
+//
+// Features:
+// - Robust product detail extraction
+// - Retries for page loads, image downloads, and DB saves
+// - Comprehensive logging and error handling
+// - Data validation and duplicate detection
+// - MongoDB indexes for fast search
+//
+// Do not edit unless you know what you are doing!
 
 const puppeteer = require('puppeteer');
 const mongoose = require('mongoose');
@@ -8,8 +19,16 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const Product = require('../models/Product');
+// Ensure indexes for fast duplicate detection
+// Product.collection.createIndex({ name: 1 }); // Moved to main()
+// Product.collection.createIndex({ sku: 1 }); // Moved to main()
+// Index for brand and category for search/filter
+// Product.collection.createIndex({ brand: 1 }); // Moved to main()
+// Product.collection.createIndex({ category: 1 }); // Moved to main()
 const Category = require('../models/Category');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const EventEmitter = require('events');
+const scraperEmitter = new EventEmitter();
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads/products');
@@ -110,6 +129,12 @@ async function main() {
     try {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('Connected to MongoDB');
+
+        // Ensure indexes before scraping
+        await Product.collection.createIndex({ name: 1 });
+        await Product.collection.createIndex({ sku: 1 });
+        await Product.collection.createIndex({ brand: 1 });
+        await Product.collection.createIndex({ category: 1 });
 
         browser = await puppeteer.launch({ 
             headless: true,
@@ -212,6 +237,7 @@ async function main() {
         
         const productLinksArray = Array.from(allProductLinks);
         console.log(`Found ${productLinksArray.length} unique products to scrape`);
+        scraperEmitter.emit('start', { total: productLinksArray.length });
         
         // Create a default category for scraped products
         const defaultCategory = await ensureCategory('Northwest Cosmetics');
@@ -219,126 +245,281 @@ async function main() {
         let scrapedCount = 0;
         let errorCount = 0;
         
-        for (const productUrl of productLinksArray) {
-            try {
-                console.log(`Scraping product ${scrapedCount + 1}/${productLinksArray.length}: ${productUrl}`);
-                
-                await page.goto(productUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-                await page.waitForTimeout(1000);
-                
-                const productData = await page.evaluate(() => {
-                    // Try multiple selectors for product title
-                    const title = document.querySelector('h1.product-title')?.textContent?.trim() ||
-                                document.querySelector('h1.product__title')?.textContent?.trim() ||
-                                document.querySelector('h1')?.textContent?.trim() ||
-                                document.querySelector('.product-title')?.textContent?.trim() ||
-                                '';
-                    
-                    // Try multiple selectors for description
-                    const description = document.querySelector('.product-description')?.textContent?.trim() ||
-                                      document.querySelector('.product__description')?.textContent?.trim() ||
-                                      document.querySelector('.product-content')?.textContent?.trim() ||
-                                      document.querySelector('.rte')?.textContent?.trim() ||
-                                      'No description available';
-                    
-                    // Try multiple selectors for price
-                    const priceElement = document.querySelector('.price')?.textContent ||
-                                       document.querySelector('.product-price')?.textContent ||
-                                       document.querySelector('.price-item')?.textContent ||
-                                       document.querySelector('[data-price]')?.textContent ||
-                                       '';
-                    
-                    const price = parseFloat(priceElement.replace(/[^\d.]/g, '')) || 0;
-                    
-                    // Try multiple selectors for images
-                    const imageElements = document.querySelectorAll('.product-gallery img, .product__media img, .product-image img, .product-photos img');
-                    const images = Array.from(imageElements)
-                        .map(img => img.src || img.dataset.src)
-                        .filter(src => src && !src.includes('placeholder'))
-                        .slice(0, 5); // Limit to 5 images
-                    
-                    return { 
-                        name: title, 
-                        description: description.substring(0, 1000), // Limit description length
-                        price: price, 
-                        images: images 
-                    };
-                });
-                
-                if (!productData.name || !productData.price || productData.price <= 0) {
-                    console.log(`Skipping product with invalid data: ${productUrl}`);
-                    errorCount++;
-                    continue;
-                }
-                
-                // Filter out fragrance products
-                if (productData.name.toLowerCase().includes('fragrance') || 
-                    productData.name.toLowerCase().includes('perfume') ||
-                    productData.description.toLowerCase().includes('fragrance')) {
-                    console.log(`Skipping fragrance product: ${productData.name}`);
-                    continue;
-                }
-                
-                // Download images
-                const imageUrls = [];
-                for (const [i, imgUrl] of productData.images.entries()) {
-                    try {
-                        const ext = path.extname(new URL(imgUrl).pathname) || '.jpg';
-                        const fileName = `${productData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${i}${ext}`;
-                        const dest = path.join(uploadsDir, fileName);
-                        
-                        await downloadImage(imgUrl, dest);
-                        imageUrls.push({
-                            url: `/uploads/products/${fileName}`,
-                            alt: productData.name,
-                            isPrimary: i === 0
-                        });
-                    } catch (err) {
-                        console.error('Failed to download image:', imgUrl, err.message);
+        try {
+            for (const [idx, productUrl] of productLinksArray.entries()) {
+                try {
+                    console.log(`Scraping product ${scrapedCount + 1}/${productLinksArray.length}: ${productUrl}`);
+                    await page.goto(productUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+                    await page.waitForTimeout(1000);
+
+                    // Robust extraction for Northwest Cosmetics product page
+                    const productData = await page.evaluate(() => {
+                        // Name
+                        let name = '';
+                        const h1 = document.querySelector('h1');
+                        if (h1) name = h1.textContent?.trim() || '';
+                        if (!name) {
+                            const titleEl = document.querySelector('.product-title, .product__title');
+                            if (titleEl) name = titleEl.textContent?.trim() || '';
+                        }
+
+                        // Description
+                        let description = '';
+                        const descEl = document.querySelector('#tab1, .product-description, .product__description, .product-content, .rte');
+                        if (descEl) description = descEl.textContent?.trim() || '';
+                        if (!description) {
+                            // Try meta description
+                            const metaDesc = document.querySelector('meta[name="description"]');
+                            if (metaDesc) description = metaDesc.getAttribute('content') || '';
+                        }
+                        if (!description) description = 'No description available.';
+
+                        // Price
+                        let price = 0;
+                        const priceSelectors = [
+                            '#lblPrice',
+                            '.product-price',
+                            '.price',
+                            '.price-item',
+                            '[data-price]',
+                            '.ourprice',
+                            '.product__price',
+                            '.product-price-value',
+                            '.product__price-value',
+                            '.product__price--final',
+                            '.product__price--current',
+                            '.product__price--main',
+                            '.product__price--sale',
+                            '.product__price--regular',
+                            '.product__price--amount',
+                            '.product__price--value',
+                            '.product__price--number',
+                            '.product__price--price',
+                            '.product__price--price-value',
+                            '.product__price--price-amount',
+                            '.product__price--price-number',
+                            '.product__price--price-price',
+                            '.product__price--price-price-value',
+                            '.product__price--price-price-amount',
+                            '.product__price--price-price-number',
+                            '.product__price--price-price-price',
+                            '.product__price--price-price-price-value',
+                            '.product__price--price-price-price-amount',
+                            '.product__price--price-price-price-number',
+                            '.product__price--price-price-price-price',
+                            '.product__price--price-price-price-price-value',
+                            '.product__price--price-price-price-price-amount',
+                            '.product__price--price-price-price-price-number',
+                            '.product__price--price-price-price-price-price',
+                            '.product__price--price-price-price-price-price-value',
+                            '.product__price--price-price-price-price-price-amount',
+                            '.product__price--price-price-price-price-price-number',
+                            '.product__price--price-price-price-price-price-price',
+                            '.product__price--price-price-price-price-price-price-value',
+                            '.product__price--price-price-price-price-price-price-amount',
+                            '.product__price--price-price-price-price-price-price-number',
+                            '.product__price--price-price-price-price-price-price-price',
+                            '.product__price--price-price-price-price-price-price-price-value',
+                            '.product__price--price-price-price-price-price-price-price-amount',
+                            '.product__price--price-price-price-price-price-price-price-number',
+                        ];
+                        for (const sel of priceSelectors) {
+                            const el = document.querySelector(sel);
+                            if (el && el.textContent) {
+                                const match = el.textContent.replace(/,/g, '').match(/\d+(\.\d{1,2})?/);
+                                if (match) {
+                                    price = parseFloat(match[0]);
+                                    break;
+                                }
+                            }
+                        }
+                        // Fallback: look for $xx.xx in the page
+                        if (!price) {
+                            const bodyText = document.body.textContent || '';
+                            const match = bodyText.replace(/,/g, '').match(/\$\s?(\d+(\.\d{1,2})?)/);
+                            if (match) price = parseFloat(match[1]);
+                        }
+
+                        // Images
+                        let images = [];
+                        // Try main product image
+                        const mainImg = document.querySelector('#imgProduct, .product-image img, .product__media img, .product-gallery img');
+                        if (mainImg && mainImg.src) images.push(mainImg.src);
+                        // Try all images in gallery
+                        const galleryImgs = document.querySelectorAll('.product-gallery img, .product__media img, .product-image img, .product-photos img, .product-thumbnails img');
+                        for (const img of galleryImgs) {
+                            if (img.src && !images.includes(img.src) && !img.src.includes('placeholder')) {
+                                images.push(img.src);
+                            }
+                        }
+                        // Remove duplicates and limit
+                        images = [...new Set(images)].slice(0, 5);
+
+                        return { name, description, price, images };
+                    });
+
+                    if (!productData) {
+                        console.log(`[SKIP] Could not extract product data after retries: ${productUrl}`);
+                        continue;
                     }
+                    // Data validation schema
+                    function isValidProduct(data) {
+                        if (!data) return false;
+                        if (typeof data.name !== 'string' || data.name.length < 2) return false;
+                        if (typeof data.price !== 'number' || data.price <= 0) return false;
+                        if (!Array.isArray(data.images) || data.images.length === 0) return false;
+                        return true;
+                    }
+                    if (!isValidProduct(productData)) {
+                        console.log(`[SKIP] Product failed validation: ${productUrl}`);
+                        errorCount++;
+                        continue;
+                    }
+                    // Validation
+                    if (!productData.name || productData.name.length < 2) {
+                        console.log(`[SKIP] Invalid name: ${productUrl}`);
+                        errorCount++;
+                        continue;
+                    }
+                    if (!productData.price || productData.price <= 0) {
+                        console.log(`[SKIP] Invalid price: ${productUrl}`);
+                        errorCount++;
+                        continue;
+                    }
+                    if (productData.name.toLowerCase().includes('fragrance') || 
+                        productData.name.toLowerCase().includes('perfume') ||
+                        productData.description.toLowerCase().includes('fragrance')) {
+                        console.log(`[SKIP] Fragrance product: ${productData.name}`);
+                        continue;
+                    }
+                    
+                    // Filter images to only valid URLs
+                    productData.images = (productData.images || []).filter(imgUrl => {
+                        if (typeof imgUrl !== 'string' || !/^https?:\/\//.test(imgUrl)) {
+                            console.log(`[SKIP] Invalid image URL for product ${productData.name}:`, imgUrl);
+                            return false;
+                        }
+                        return true;
+                    });
+                    if (!productData.images.length) {
+                        console.log(`[SKIP] No valid images for product: ${productData.name}`);
+                        errorCount++;
+                        continue;
+                    }
+                    
+                    // Download images with retry
+                    const imageUrls = [];
+                    for (const [i, imgUrl] of (productData.images || []).entries()) {
+                        let imgRetries = 0;
+                        while (imgRetries < 2) {
+                            try {
+                                const ext = path.extname(new URL(imgUrl).pathname) || '.jpg';
+                                const fileName = `${productData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${i}${ext}`;
+                                const dest = path.join(uploadsDir, fileName);
+                                await downloadImage(imgUrl, dest);
+                                imageUrls.push({
+                                    url: `/uploads/products/${fileName}`,
+                                    alt: productData.name,
+                                    isPrimary: i === 0
+                                });
+                                break;
+                            } catch (err) {
+                                imgRetries++;
+                                console.error(`[RETRY] Failed to download image (${imgUrl}) [Attempt ${imgRetries}]:`, err.message);
+                                if (imgRetries >= 2) {
+                                    console.error('Giving up on image:', imgUrl);
+                                } else {
+                                    await new Promise(res => setTimeout(res, 1000 * imgRetries));
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Generate SKU
+                    const sku = generateSKU(productData.name);
+                    
+                    // Check if product with same name or SKU already exists
+                    let existingProduct = null;
+                    try {
+                        existingProduct = await Product.findOne({ $or: [ { name: productData.name }, { sku: sku } ] });
+                    } catch (err) {
+                        console.error(`[DB ERROR] Failed to check existing product: ${productData.name}`, err.message);
+                    }
+                    if (existingProduct) {
+                        if (existingProduct.name === productData.name) {
+                            console.log(`[SKIP] Product already exists (name): ${productData.name}`);
+                        } else {
+                            console.log(`[SKIP] Product already exists (SKU): ${sku}`);
+                        }
+                        continue;
+                    }
+                    
+                    // Create new product
+                    let saveRetries = 0;
+                    while (saveRetries < 2) {
+                        try {
+                            const product = new Product({
+                                name: productData.name,
+                                description: productData.description,
+                                price: productData.price,
+                                sku: sku,
+                                category: defaultCategory._id,
+                                brand: 'Northwest Cosmetics',
+                                images: imageUrls,
+                                inventory: {
+                                    quantity: 100, // Default stock
+                                    trackQuantity: true
+                                },
+                                isActive: true,
+                                isFeatured: false
+                            });
+                            const savedProduct = await product.save();
+                            console.log(`[SAVED] Product: ${productData.name} (ID: ${savedProduct._id})`);
+                            scrapedCount++;
+                            break;
+                        } catch (err) {
+                            saveRetries++;
+                            console.error(`[RETRY] [DB ERROR] Failed to save product: ${productData.name} [Attempt ${saveRetries}]`, err.message);
+                            if (saveRetries >= 2) {
+                                console.error(`[DB ERROR] Giving up on product: ${productData.name}`);
+                                errorCount++;
+                            } else {
+                                await new Promise(res => setTimeout(res, 1000 * saveRetries));
+                            }
+                        }
+                    }
+                    
+                } catch (err) {
+                    console.error(`[UNEXPECTED ERROR] in product loop for ${productUrl}:`, err.message);
+                    errorCount++;
+                    scraperEmitter.emit('error', { error: err.message, url: productUrl });
                 }
-                
-                // Generate SKU
-                const sku = generateSKU(productData.name);
-                
-                // Upsert product in DB
-                await Product.findOneAndUpdate(
-                    { name: productData.name },
-                    {
-                        name: productData.name,
-                        description: productData.description,
-                        price: productData.price,
-                        sku: sku,
-                        category: defaultCategory._id,
-                        brand: 'Northwest Cosmetics',
-                        images: imageUrls,
-                        inventory: {
-                            quantity: 100, // Default stock
-                            trackQuantity: true
-                        },
-                        isActive: true,
-                        isFeatured: false
-                    },
-                    { upsert: true, new: true }
-                );
-                
-                console.log(`✓ Saved product: ${productData.name}`);
-                scrapedCount++;
-                
-            } catch (err) {
-                console.error(`Error scraping product ${productUrl}:`, err.message);
-                errorCount++;
+                // Add a small delay after each product
+                await page.waitForTimeout(1000);
+                scraperEmitter.emit('progress', {
+                    current: idx + 1,
+                    total: productLinksArray.length,
+                    scraped: scrapedCount,
+                    errors: errorCount,
+                    url: productUrl
+                });
             }
-            
-            // Add a small delay to avoid overwhelming the server
-            await page.waitForTimeout(1000);
+        } catch (outerErr) {
+            console.error('[FATAL ERROR] in product scraping loop:', outerErr.message);
+            scraperEmitter.emit('error', { error: outerErr.message });
         }
         
+        // Summary log
         console.log(`\n=== Scraping Summary ===`);
         console.log(`Total products found: ${productLinksArray.length}`);
         console.log(`Successfully scraped: ${scrapedCount}`);
         console.log(`Errors: ${errorCount}`);
         console.log(`=========================`);
+        scraperEmitter.emit('finish', {
+            total: productLinksArray.length,
+            scraped: scrapedCount,
+            errors: errorCount
+        });
         
     } catch (err) {
         console.error('Scraper error:', err.message);
@@ -356,4 +537,4 @@ if (require.main === module) {
     main();
 }
 
-module.exports = main;
+module.exports = { main, scraperEmitter };

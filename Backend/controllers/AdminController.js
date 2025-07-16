@@ -3,6 +3,7 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const { spawn } = require('child_process');
 const path = require('path');
+const { scraperEmitter } = require('../scripts/scrapeNorthwestCosmetics');
 
 // Dashboard stats
 exports.getStats = async (req, res) => {
@@ -71,4 +72,37 @@ exports.scrapeNorthwestCosmetics = async (req, res) => {
             error: error.message 
         });
     }
+};
+
+// SSE endpoint for scraper progress
+exports.scrapeProgressSSE = (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const sendEvent = (event, data) => {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    // Handlers
+    const onStart = (data) => sendEvent('start', data);
+    const onProgress = (data) => sendEvent('progress', data);
+    const onError = (data) => sendEvent('error', data);
+    const onFinish = (data) => sendEvent('finish', data);
+
+    scraperEmitter.on('start', onStart);
+    scraperEmitter.on('progress', onProgress);
+    scraperEmitter.on('error', onError);
+    scraperEmitter.on('finish', onFinish);
+
+    // Clean up listeners on client disconnect
+    req.on('close', () => {
+        scraperEmitter.off('start', onStart);
+        scraperEmitter.off('progress', onProgress);
+        scraperEmitter.off('error', onError);
+        scraperEmitter.off('finish', onFinish);
+        res.end();
+    });
 };
