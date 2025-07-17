@@ -14,7 +14,14 @@ export const authService = {
   },
 
   async register(data: RegisterRequest): Promise<ApiResponse<{ user: User; token: string }>> {
-    return api.post('/api/users/register', data)
+    // Transform frontend data to match backend expectations
+    const backendData = {
+      name: `${data.firstName} ${data.lastName}`,
+      email: data.email,
+      password: data.password,
+      role: 'customer' // Default role for registration
+    }
+    return api.post('/api/users/register', backendData)
   },
 
   async verifyEmail(token: string): Promise<ApiResponse<{ user: User }>> {

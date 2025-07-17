@@ -82,8 +82,19 @@ exports.scrapeProgressSSE = (req, res) => {
     res.flushHeaders();
 
     const sendEvent = (event, data) => {
-        res.write(`event: ${event}\n`);
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
+        let safeData = data;
+        if (typeof data === 'undefined' || data === null) {
+            safeData = { error: 'No data' };
+        }
+        try {
+            const jsonData = JSON.stringify(safeData);
+            res.write(`event: ${event}\n`);
+            res.write(`data: ${jsonData}\n\n`);
+        } catch (err) {
+            console.error('[SSE] Failed to stringify data:', err);
+            res.write(`event: ${event}\n`);
+            res.write(`data: ${JSON.stringify({ error: 'Data serialization failed' })}\n\n`);
+        }
     };
 
     // Handlers

@@ -19,16 +19,29 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const Product = require('../models/Product');
-// Ensure indexes for fast duplicate detection
-// Product.collection.createIndex({ name: 1 }); // Moved to main()
-// Product.collection.createIndex({ sku: 1 }); // Moved to main()
-// Index for brand and category for search/filter
-// Product.collection.createIndex({ brand: 1 }); // Moved to main()
-// Product.collection.createIndex({ category: 1 }); // Moved to main()
 const Category = require('../models/Category');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const EventEmitter = require('events');
 const scraperEmitter = new EventEmitter();
+
+// Global progress tracking
+let globalProgress = {
+    total: 0,
+    current: 0,
+    scraped: 0,
+    errors: 0,
+    url: ''
+};
+
+// Emit progress helper
+function emitProgress(data) {
+    globalProgress = { ...globalProgress, ...data };
+    scraperEmitter.emit('progress', globalProgress);
+    // Also send to parent process if running as child
+    if (process.send) {
+        process.send({ type: 'progress', data: globalProgress });
+    }
+}
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads/products');
@@ -102,20 +115,27 @@ function extractCategoryLinks(sitemapContent) {
 function extractProductLinks(pageContent) {
     const productLinks = [];
     const patterns = [
-        /href="([^"]*-p\.asp[^"]*)"/g,
-        /href="([^"]*product[^"]*\.asp[^"]*)"/g,
-        /href="([^"]*\.asp[^"]*)"/g
+        /href="([^"]*-p\.asp[^"]*)"/g  // Only get URLs that end with -p.asp (product pages)
     ];
     
     patterns.forEach(pattern => {
         let match;
         while ((match = pattern.exec(pageContent)) !== null) {
             const url = match[1];
-            if (url.includes('product') || url.includes('-p.asp') || 
-                (url.includes('.asp') && !url.includes('-c.asp') && !url.includes('-w.asp'))) {
+            // Only include URLs that clearly are product pages
+            if (url.includes('-p.asp')) {
+                // Exclude fragrance and perfume products
                 if (!url.toLowerCase().includes('fragrance') && !url.toLowerCase().includes('perfume')) {
                     const fullUrl = url.startsWith('http') ? url : `https://northwest-cosmetics.com/${url}`;
-                    productLinks.push(fullUrl);
+                    // Additional filtering to exclude non-product pages
+                    if (!fullUrl.includes('index.asp') && 
+                        !fullUrl.includes('cart') && 
+                        !fullUrl.includes('terms') && 
+                        !fullUrl.includes('privacy') && 
+                        !fullUrl.includes('sitemap') &&
+                        !fullUrl.includes('contact')) {
+                        productLinks.push(fullUrl);
+                    }
                 }
             }
         }
@@ -128,16 +148,10 @@ async function main() {
     let browser;
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log('Connected to MongoDB');
-
-        // Ensure indexes before scraping
-        await Product.collection.createIndex({ name: 1 });
-        await Product.collection.createIndex({ sku: 1 });
-        await Product.collection.createIndex({ brand: 1 });
-        await Product.collection.createIndex({ category: 1 });
+        console.log('[Scraper] Connected to MongoDB');
 
         browser = await puppeteer.launch({ 
-            headless: true,
+            headless: "new",
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
             defaultViewport: { width: 1920, height: 1080 }
         });
@@ -145,7 +159,7 @@ async function main() {
         const page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
         
-        console.log('Fetching sitemap from Northwest Cosmetics...');
+        console.log('[Scraper] Fetching sitemap from Northwest Cosmetics...');
         await page.goto('https://northwest-cosmetics.com/sitemap.asp', { 
             waitUntil: 'networkidle2', 
             timeout: 30000 
@@ -153,18 +167,61 @@ async function main() {
 
         // Extract sitemap content
         const sitemapContent = await page.content();
-        console.log('Sitemap loaded, length:', sitemapContent.length);
+        console.log(`[Scraper] Sitemap loaded, length: ${sitemapContent.length}`);
         
         // Extract category links from sitemap
         const categoryLinks = extractCategoryLinks(sitemapContent);
-        console.log(`Found ${categoryLinks.length} category links`);
+        console.log(`[Scraper] Found ${categoryLinks.length} category links`);
         
-        // Step 1: Scrape all categories to find product links
-        const allProductLinks = new Set();
+        // Process each category individually
+        let totalProductsProcessed = 0;
+        let totalProductsScraped = 0;
+        let totalErrors = 0;
+        
+        // First, count total products to scrape for progress tracking
+        let totalProductsToScrape = 0;
+        console.log('[Scraper] Counting total products to scrape...');
         
         for (const categoryUrl of categoryLinks) {
             try {
-                console.log(`Scraping category: ${categoryUrl}`);
+                await page.goto(categoryUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+                await page.waitForTimeout(1000);
+                
+                const categoryContent = await page.content();
+                const productLinks = extractProductLinks(categoryContent);
+                totalProductsToScrape += productLinks.length;
+                
+            } catch (error) {
+                console.error(`[Scraper] Error counting products in category ${categoryUrl}:`, error.message);
+            }
+        }
+        
+        console.log(`[Scraper] Total products to process: ${totalProductsToScrape}`);
+        
+        // Initialize progress tracking
+        globalProgress.total = totalProductsToScrape;
+        globalProgress.current = 0;
+        globalProgress.scraped = 0;
+        globalProgress.errors = 0;
+        
+        scraperEmitter.emit('start', { total: totalProductsToScrape });
+        
+        // Process each category one by one
+        for (const categoryUrl of categoryLinks) {
+            try {
+                // Create category
+                const categoryName = categoryUrl.split('/').pop().replace('-c.asp', '').replace(/-/g, ' ').trim();
+                if (!categoryName) continue;
+                
+                const cleanName = categoryName.split(' ').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                ).join(' ');
+                
+                const category = await ensureCategory(cleanName);
+                
+                console.log(`[Scraper] Processing category: ${cleanName} (${categoryUrl})`);
+                
+                // Navigate to category page
                 await page.goto(categoryUrl, { waitUntil: 'networkidle2', timeout: 30000 });
                 await page.waitForTimeout(2000);
                 
@@ -172,353 +229,342 @@ async function main() {
                 const categoryContent = await page.content();
                 const productLinks = extractProductLinks(categoryContent);
                 
-                productLinks.forEach(link => allProductLinks.add(link));
-                console.log(`Added ${productLinks.length} products from category`);
+                console.log(`[Scraper] Found ${productLinks.length} products in category: ${cleanName}`);
                 
-            } catch (error) {
-                console.error(`Error scraping category ${categoryUrl}:`, error.message);
-            }
-        }
-        
-        // Step 2: Also try to find product links directly from sitemap
-        console.log('Extracting product links from sitemap...');
-        const sitemapProductLinks = extractProductLinks(sitemapContent);
-        sitemapProductLinks.forEach(link => allProductLinks.add(link));
-        console.log(`Found ${sitemapProductLinks.length} product links in sitemap`);
-        
-        // Step 3: Try to navigate through each category page to find more products
-        for (const categoryUrl of categoryLinks.slice(0, 5)) { // Limit to first 5 categories for testing
-            try {
-                console.log(`Deep scraping category: ${categoryUrl}`);
-                await page.goto(categoryUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-                await page.waitForTimeout(2000);
-                
-                // Look for product links using various selectors
-                const pageProductLinks = await page.evaluate(() => {
-                    const productLinks = [];
-                    
-                    // Try multiple selectors for product links
-                    const selectors = [
-                        'a[href*=".asp"]',
-                        'a[href*="product"]',
-                        'a[href*="-p.asp"]',
-                        '.product-item a',
-                        '.product-card a',
-                        '.product-link',
-                        '.product a'
-                    ];
-                    
-                    selectors.forEach(selector => {
-                        const elements = Array.from(document.querySelectorAll(selector));
-                        elements.forEach(element => {
-                            const href = element.href;
-                            if (href && href.includes('.asp') && 
-                                !href.includes('-c.asp') && 
-                                !href.includes('-w.asp') &&
-                                !href.includes('sitemap.asp') &&
-                                !href.includes('index.asp') &&
-                                !href.toLowerCase().includes('fragrance') &&
-                                !href.toLowerCase().includes('perfume')) {
-                                productLinks.push(href);
-                            }
+                // Process each product in this category immediately
+                for (const [productIndex, productUrl] of productLinks.entries()) {
+                    try {
+                        console.log(`[Scraper] Processing product ${totalProductsProcessed + 1}/${totalProductsToScrape}: ${productUrl}`);
+                        
+                        // Check if product already exists before processing
+                        const existingByUrl = await Product.findOne({ 
+                            $or: [
+                                { name: { $regex: new RegExp(productUrl.split('/').pop().replace(/[^a-zA-Z0-9]/g, ''), 'i') } },
+                                { 'metadata.sourceUrl': productUrl }
+                            ]
                         });
-                    });
-                    
-                    return [...new Set(productLinks)];
-                });
-                
-                pageProductLinks.forEach(link => allProductLinks.add(link));
-                console.log(`Deep scraping found ${pageProductLinks.length} more products`);
-                
-            } catch (error) {
-                console.error(`Error deep scraping category ${categoryUrl}:`, error.message);
-            }
-        }
-        
-        const productLinksArray = Array.from(allProductLinks);
-        console.log(`Found ${productLinksArray.length} unique products to scrape`);
-        scraperEmitter.emit('start', { total: productLinksArray.length });
-        
-        // Create a default category for scraped products
-        const defaultCategory = await ensureCategory('Northwest Cosmetics');
-        
-        let scrapedCount = 0;
-        let errorCount = 0;
-        
-        try {
-            for (const [idx, productUrl] of productLinksArray.entries()) {
-                try {
-                    console.log(`Scraping product ${scrapedCount + 1}/${productLinksArray.length}: ${productUrl}`);
-                    await page.goto(productUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-                    await page.waitForTimeout(1000);
-
-                    // Robust extraction for Northwest Cosmetics product page
-                    const productData = await page.evaluate(() => {
-                        // Name
-                        let name = '';
-                        const h1 = document.querySelector('h1');
-                        if (h1) name = h1.textContent?.trim() || '';
-                        if (!name) {
-                            const titleEl = document.querySelector('.product-title, .product__title');
-                            if (titleEl) name = titleEl.textContent?.trim() || '';
+                        
+                        if (existingByUrl) {
+                            console.log(`[SKIP] Product already exists for URL: ${productUrl}`);
+                            totalProductsProcessed++;
+                            continue;
                         }
+                        
+                        await page.goto(productUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+                        await page.waitForTimeout(1000);
 
-                        // Description
-                        let description = '';
-                        const descEl = document.querySelector('#tab1, .product-description, .product__description, .product-content, .rte');
-                        if (descEl) description = descEl.textContent?.trim() || '';
-                        if (!description) {
-                            // Try meta description
-                            const metaDesc = document.querySelector('meta[name="description"]');
-                            if (metaDesc) description = metaDesc.getAttribute('content') || '';
-                        }
-                        if (!description) description = 'No description available.';
+                        // Robust extraction for Northwest Cosmetics product page
+                        const productData = await page.evaluate(() => {
+                            // Name
+                            let name = '';
+                            const h1 = document.querySelector('h1');
+                            if (h1) name = h1.textContent?.trim() || '';
+                            if (!name) {
+                                const titleEl = document.querySelector('.product-title, .product__title, .product-name');
+                                if (titleEl) name = titleEl.textContent?.trim() || '';
+                            }
+                            if (!name) {
+                                // Try page title as fallback
+                                const pageTitle = document.title || '';
+                                if (pageTitle && !pageTitle.toLowerCase().includes('northwest')) {
+                                    name = pageTitle.trim();
+                                }
+                            }
 
-                        // Price
-                        let price = 0;
-                        const priceSelectors = [
-                            '#lblPrice',
-                            '.product-price',
-                            '.price',
-                            '.price-item',
-                            '[data-price]',
-                            '.ourprice',
-                            '.product__price',
-                            '.product-price-value',
-                            '.product__price-value',
-                            '.product__price--final',
-                            '.product__price--current',
-                            '.product__price--main',
-                            '.product__price--sale',
-                            '.product__price--regular',
-                            '.product__price--amount',
-                            '.product__price--value',
-                            '.product__price--number',
-                            '.product__price--price',
-                            '.product__price--price-value',
-                            '.product__price--price-amount',
-                            '.product__price--price-number',
-                            '.product__price--price-price',
-                            '.product__price--price-price-value',
-                            '.product__price--price-price-amount',
-                            '.product__price--price-price-number',
-                            '.product__price--price-price-price',
-                            '.product__price--price-price-price-value',
-                            '.product__price--price-price-price-amount',
-                            '.product__price--price-price-price-number',
-                            '.product__price--price-price-price-price',
-                            '.product__price--price-price-price-price-value',
-                            '.product__price--price-price-price-price-amount',
-                            '.product__price--price-price-price-price-number',
-                            '.product__price--price-price-price-price-price',
-                            '.product__price--price-price-price-price-price-value',
-                            '.product__price--price-price-price-price-price-amount',
-                            '.product__price--price-price-price-price-price-number',
-                            '.product__price--price-price-price-price-price-price',
-                            '.product__price--price-price-price-price-price-price-value',
-                            '.product__price--price-price-price-price-price-price-amount',
-                            '.product__price--price-price-price-price-price-price-number',
-                            '.product__price--price-price-price-price-price-price-price',
-                            '.product__price--price-price-price-price-price-price-price-value',
-                            '.product__price--price-price-price-price-price-price-price-amount',
-                            '.product__price--price-price-price-price-price-price-price-number',
-                        ];
-                        for (const sel of priceSelectors) {
-                            const el = document.querySelector(sel);
-                            if (el && el.textContent) {
-                                const match = el.textContent.replace(/,/g, '').match(/\d+(\.\d{1,2})?/);
-                                if (match) {
-                                    price = parseFloat(match[0]);
+                            // Description
+                            let description = '';
+                            const descSelectors = [
+                                '#tab1',
+                                '.product-description',
+                                '.product__description',
+                                '.product-content',
+                                '.rte',
+                                '.description',
+                                '.product-details',
+                                '.content'
+                            ];
+                            for (const sel of descSelectors) {
+                                const el = document.querySelector(sel);
+                                if (el && el.textContent && el.textContent.trim().length > 10) {
+                                    description = el.textContent.trim();
                                     break;
                                 }
                             }
-                        }
-                        // Fallback: look for $xx.xx in the page
-                        if (!price) {
-                            const bodyText = document.body.textContent || '';
-                            const match = bodyText.replace(/,/g, '').match(/\$\s?(\d+(\.\d{1,2})?)/);
-                            if (match) price = parseFloat(match[1]);
-                        }
-
-                        // Images
-                        let images = [];
-                        // Try main product image
-                        const mainImg = document.querySelector('#imgProduct, .product-image img, .product__media img, .product-gallery img');
-                        if (mainImg && mainImg.src) images.push(mainImg.src);
-                        // Try all images in gallery
-                        const galleryImgs = document.querySelectorAll('.product-gallery img, .product__media img, .product-image img, .product-photos img, .product-thumbnails img');
-                        for (const img of galleryImgs) {
-                            if (img.src && !images.includes(img.src) && !img.src.includes('placeholder')) {
-                                images.push(img.src);
+                            if (!description) {
+                                // Try meta description
+                                const metaDesc = document.querySelector('meta[name="description"]');
+                                if (metaDesc) description = metaDesc.getAttribute('content') || '';
                             }
-                        }
-                        // Remove duplicates and limit
-                        images = [...new Set(images)].slice(0, 5);
+                            if (!description) description = 'No description available.';
 
-                        return { name, description, price, images };
-                    });
+                            // Price
+                            let price = 0;
+                            const priceSelectors = [
+                                '#lblPrice',
+                                '.product-price',
+                                '.price',
+                                '.price-item',
+                                '[data-price]',
+                                '.ourprice',
+                                '.product__price',
+                                '.price-current',
+                                '.current-price',
+                                '.sale-price'
+                            ];
+                            for (const sel of priceSelectors) {
+                                const el = document.querySelector(sel);
+                                if (el && el.textContent) {
+                                    const priceText = el.textContent.replace(/,/g, '').replace(/[^\d\.]/g, '');
+                                    const match = priceText.match(/\d+(\.\d{1,2})?/);
+                                    if (match && parseFloat(match[0]) > 0) {
+                                        price = parseFloat(match[0]);
+                                        break;
+                                    }
+                                }
+                            }
+                            // Fallback: look for £xx.xx or $xx.xx in the page
+                            if (!price || price <= 0) {
+                                const bodyText = document.body.textContent || '';
+                                const matches = [
+                                    bodyText.match(/[£$]\s?(\d+(?:\.\d{1,2})?)/),
+                                    bodyText.match(/(\d+(?:\.\d{1,2})?)\s*[£$]/),
+                                    bodyText.match(/Price[\s:]*[£$]?\s*(\d+(?:\.\d{1,2})?)/i)
+                                ];
+                                for (const match of matches) {
+                                    if (match && parseFloat(match[1]) > 0) {
+                                        price = parseFloat(match[1]);
+                                        break;
+                                    }
+                                }
+                            }
 
-                    if (!productData) {
-                        console.log(`[SKIP] Could not extract product data after retries: ${productUrl}`);
-                        continue;
-                    }
-                    // Data validation schema
-                    function isValidProduct(data) {
-                        if (!data) return false;
-                        if (typeof data.name !== 'string' || data.name.length < 2) return false;
-                        if (typeof data.price !== 'number' || data.price <= 0) return false;
-                        if (!Array.isArray(data.images) || data.images.length === 0) return false;
-                        return true;
-                    }
-                    if (!isValidProduct(productData)) {
-                        console.log(`[SKIP] Product failed validation: ${productUrl}`);
-                        errorCount++;
-                        continue;
-                    }
-                    // Validation
-                    if (!productData.name || productData.name.length < 2) {
-                        console.log(`[SKIP] Invalid name: ${productUrl}`);
-                        errorCount++;
-                        continue;
-                    }
-                    if (!productData.price || productData.price <= 0) {
-                        console.log(`[SKIP] Invalid price: ${productUrl}`);
-                        errorCount++;
-                        continue;
-                    }
-                    if (productData.name.toLowerCase().includes('fragrance') || 
-                        productData.name.toLowerCase().includes('perfume') ||
-                        productData.description.toLowerCase().includes('fragrance')) {
-                        console.log(`[SKIP] Fragrance product: ${productData.name}`);
-                        continue;
-                    }
-                    
-                    // Filter images to only valid URLs
-                    productData.images = (productData.images || []).filter(imgUrl => {
-                        if (typeof imgUrl !== 'string' || !/^https?:\/\//.test(imgUrl)) {
-                            console.log(`[SKIP] Invalid image URL for product ${productData.name}:`, imgUrl);
-                            return false;
+                            // Images
+                            let images = [];
+                            // Try main product image
+                            const mainImgSelectors = [
+                                '#imgProduct',
+                                '.product-image img',
+                                '.product__media img',
+                                '.product-gallery img',
+                                '.main-image img',
+                                '.featured-image img',
+                                'img[src*="product"]'
+                            ];
+                            for (const sel of mainImgSelectors) {
+                                const img = document.querySelector(sel);
+                                if (img && img.src && !img.src.includes('placeholder') && !img.src.includes('loading')) {
+                                    images.push(img.src);
+                                    break;
+                                }
+                            }
+                            
+                            // Try all images in gallery
+                            const galleryImgs = document.querySelectorAll('img');
+                            for (const img of galleryImgs) {
+                                if (img.src && 
+                                    !images.includes(img.src) && 
+                                    !img.src.includes('placeholder') &&
+                                    !img.src.includes('loading') &&
+                                    !img.src.includes('icon') &&
+                                    !img.src.includes('logo') &&
+                                    (img.src.includes('product') || img.width > 100)) {
+                                    images.push(img.src);
+                                    if (images.length >= 5) break;
+                                }
+                            }
+                            // Remove duplicates and limit
+                            images = [...new Set(images)].slice(0, 5);
+
+                            // Extract additional specifications
+                            const specifications = {};
+                            
+                            // Try to find specification tables or lists
+                            const specElements = document.querySelectorAll('table tr, .specs li, .specifications li, .product-info li');
+                            for (const el of specElements) {
+                                const text = el.textContent || '';
+                                if (text.includes(':')) {
+                                    const [key, value] = text.split(':').map(s => s.trim());
+                                    if (key && value && key.length < 50 && value.length < 200) {
+                                        specifications[key] = value;
+                                    }
+                                }
+                            }
+                            
+                            // Extract brand if available
+                            let brand = 'Northwest Cosmetics';
+                            const brandSelectors = [
+                                '.brand',
+                                '.manufacturer',
+                                '.product-brand',
+                                '[data-brand]'
+                            ];
+                            for (const sel of brandSelectors) {
+                                const el = document.querySelector(sel);
+                                if (el && el.textContent && el.textContent.trim()) {
+                                    brand = el.textContent.trim();
+                                    break;
+                                }
+                            }
+
+                            return { 
+                                name, 
+                                description, 
+                                price, 
+                                images, 
+                                specifications,
+                                brand
+                            };
+                        });
+
+                        if (!productData || !productData.name || productData.name.length < 2 || !productData.price || productData.price <= 0) {
+                            console.log(`[SKIP] Invalid product data: ${productUrl}`);
+                            totalProductsProcessed++;
+                            totalErrors++;
+                            continue;
                         }
-                        return true;
-                    });
-                    if (!productData.images.length) {
-                        console.log(`[SKIP] No valid images for product: ${productData.name}`);
-                        errorCount++;
-                        continue;
-                    }
-                    
-                    // Download images with retry
-                    const imageUrls = [];
-                    for (const [i, imgUrl] of (productData.images || []).entries()) {
-                        let imgRetries = 0;
-                        while (imgRetries < 2) {
-                            try {
-                                const ext = path.extname(new URL(imgUrl).pathname) || '.jpg';
-                                const fileName = `${productData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${i}${ext}`;
-                                const dest = path.join(uploadsDir, fileName);
-                                await downloadImage(imgUrl, dest);
-                                imageUrls.push({
-                                    url: `/uploads/products/${fileName}`,
-                                    alt: productData.name,
-                                    isPrimary: i === 0
-                                });
-                                break;
-                            } catch (err) {
-                                imgRetries++;
-                                console.error(`[RETRY] Failed to download image (${imgUrl}) [Attempt ${imgRetries}]:`, err.message);
-                                if (imgRetries >= 2) {
-                                    console.error('Giving up on image:', imgUrl);
-                                } else {
-                                    await new Promise(res => setTimeout(res, 1000 * imgRetries));
+                        
+                        // Skip fragrance products
+                        if (productData.name.toLowerCase().includes('fragrance') || 
+                            productData.name.toLowerCase().includes('perfume') ||
+                            productData.description.toLowerCase().includes('fragrance')) {
+                            console.log(`[SKIP] Fragrance product: ${productData.name}`);
+                            totalProductsProcessed++;
+                            continue;
+                        }
+                        
+                        // Filter images to only valid URLs
+                        productData.images = (productData.images || []).filter(imgUrl => {
+                            if (typeof imgUrl !== 'string' || !/^https?:\/\//.test(imgUrl)) {
+                                return false;
+                            }
+                            return true;
+                        });
+                        
+                        if (!productData.images.length) {
+                            console.log(`[SKIP] No valid images for product: ${productData.name}`);
+                            totalProductsProcessed++;
+                            totalErrors++;
+                            continue;
+                        }
+                        
+                        // Check if product with same name already exists
+                        const existingProduct = await Product.findOne({ name: productData.name });
+                        if (existingProduct) {
+                            console.log(`[SKIP] Product already exists (name): ${productData.name}`);
+                            totalProductsProcessed++;
+                            continue;
+                        }
+                        
+                        // Download images with retry
+                        const imageUrls = [];
+                        for (const [i, imgUrl] of (productData.images || []).entries()) {
+                            let imgRetries = 0;
+                            while (imgRetries < 2) {
+                                try {
+                                    const ext = path.extname(new URL(imgUrl).pathname) || '.jpg';
+                                    const fileName = `${productData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${i}${ext}`;
+                                    const dest = path.join(uploadsDir, fileName);
+                                    await downloadImage(imgUrl, dest);
+                                    imageUrls.push({
+                                        url: `/uploads/products/${fileName}`,
+                                        alt: productData.name,
+                                        isPrimary: i === 0
+                                    });
+                                    break;
+                                } catch (err) {
+                                    imgRetries++;
+                                    console.error(`[RETRY] Failed to download image (${imgUrl}) [Attempt ${imgRetries}]:`, err.message);
+                                    if (imgRetries >= 2) {
+                                        console.error('Giving up on image:', imgUrl);
+                                    } else {
+                                        await new Promise(res => setTimeout(res, 1000 * imgRetries));
+                                    }
                                 }
                             }
                         }
-                    }
-                    
-                    // Generate SKU
-                    const sku = generateSKU(productData.name);
-                    
-                    // Check if product with same name or SKU already exists
-                    let existingProduct = null;
-                    try {
-                        existingProduct = await Product.findOne({ $or: [ { name: productData.name }, { sku: sku } ] });
-                    } catch (err) {
-                        console.error(`[DB ERROR] Failed to check existing product: ${productData.name}`, err.message);
-                    }
-                    if (existingProduct) {
-                        if (existingProduct.name === productData.name) {
-                            console.log(`[SKIP] Product already exists (name): ${productData.name}`);
-                        } else {
-                            console.log(`[SKIP] Product already exists (SKU): ${sku}`);
-                        }
-                        continue;
-                    }
-                    
-                    // Create new product
-                    let saveRetries = 0;
-                    while (saveRetries < 2) {
-                        try {
-                            const product = new Product({
-                                name: productData.name,
-                                description: productData.description,
-                                price: productData.price,
-                                sku: sku,
-                                category: defaultCategory._id,
-                                brand: 'Northwest Cosmetics',
-                                images: imageUrls,
-                                inventory: {
-                                    quantity: 100, // Default stock
-                                    trackQuantity: true
-                                },
-                                isActive: true,
-                                isFeatured: false
-                            });
-                            const savedProduct = await product.save();
-                            console.log(`[SAVED] Product: ${productData.name} (ID: ${savedProduct._id})`);
-                            scrapedCount++;
-                            break;
-                        } catch (err) {
-                            saveRetries++;
-                            console.error(`[RETRY] [DB ERROR] Failed to save product: ${productData.name} [Attempt ${saveRetries}]`, err.message);
-                            if (saveRetries >= 2) {
-                                console.error(`[DB ERROR] Giving up on product: ${productData.name}`);
-                                errorCount++;
-                            } else {
-                                await new Promise(res => setTimeout(res, 1000 * saveRetries));
+                        
+                        // Generate SKU
+                        const sku = generateSKU(productData.name);
+                        
+                        // Create new product
+                        let saveRetries = 0;
+                        while (saveRetries < 2) {
+                            try {
+                                const product = new Product({
+                                    name: productData.name,
+                                    description: productData.description,
+                                    price: productData.price,
+                                    sku: sku,
+                                    category: category._id,
+                                    brand: productData.brand || 'Northwest Cosmetics',
+                                    images: imageUrls,
+                                    inventory: {
+                                        quantity: 100, // Default stock
+                                        trackQuantity: true
+                                    },
+                                    isActive: true,
+                                    isFeatured: false,
+                                    metadata: {
+                                        sourceUrl: productUrl,
+                                        scrapedAt: new Date(),
+                                        specifications: productData.specifications || {},
+                                        originalBrand: productData.brand || 'Northwest Cosmetics'
+                                    }
+                                });
+                                const savedProduct = await product.save();
+                                console.log(`[SAVED] Product: ${productData.name} (ID: ${savedProduct._id}) in category: ${cleanName}`);
+                                totalProductsScraped++;
+                                break;
+                            } catch (err) {
+                                saveRetries++;
+                                console.error(`[RETRY] [DB ERROR] Failed to save product: ${productData.name} [Attempt ${saveRetries}]`, err.message);
+                                if (saveRetries >= 2) {
+                                    console.error(`[DB ERROR] Giving up on product: ${productData.name}`);
+                                    totalErrors++;
+                                } else {
+                                    await new Promise(res => setTimeout(res, 1000 * saveRetries));
+                                }
                             }
                         }
+                        
+                    } catch (err) {
+                        console.error(`[UNEXPECTED ERROR] in product loop for ${productUrl}:`, err.message);
+                        totalErrors++;
+                        scraperEmitter.emit('error', { error: err.message, url: productUrl });
                     }
                     
-                } catch (err) {
-                    console.error(`[UNEXPECTED ERROR] in product loop for ${productUrl}:`, err.message);
-                    errorCount++;
-                    scraperEmitter.emit('error', { error: err.message, url: productUrl });
+                    // Update progress
+                    totalProductsProcessed++;
+                    globalProgress.current = totalProductsProcessed;
+                    globalProgress.scraped = totalProductsScraped;
+                    globalProgress.errors = totalErrors;
+                    globalProgress.url = productUrl;
+                    
+                    // Emit progress
+                    emitProgress(globalProgress);
+                    
+                    // Add a small delay after each product
+                    await page.waitForTimeout(1000);
                 }
-                // Add a small delay after each product
-                await page.waitForTimeout(1000);
-                scraperEmitter.emit('progress', {
-                    current: idx + 1,
-                    total: productLinksArray.length,
-                    scraped: scrapedCount,
-                    errors: errorCount,
-                    url: productUrl
-                });
+                
+                console.log(`[Scraper] Completed category: ${cleanName} - ${totalProductsScraped} products scraped`);
+                
+            } catch (categoryErr) {
+                console.error(`[Scraper] Error processing category ${categoryUrl}:`, categoryErr.message);
+                totalErrors++;
             }
-        } catch (outerErr) {
-            console.error('[FATAL ERROR] in product scraping loop:', outerErr.message);
-            scraperEmitter.emit('error', { error: outerErr.message });
         }
         
         // Summary log
         console.log(`\n=== Scraping Summary ===`);
-        console.log(`Total products found: ${productLinksArray.length}`);
-        console.log(`Successfully scraped: ${scrapedCount}`);
-        console.log(`Errors: ${errorCount}`);
+        console.log(`Total products processed: ${totalProductsProcessed}`);
+        console.log(`Successfully scraped: ${totalProductsScraped}`);
+        console.log(`Errors: ${totalErrors}`);
         console.log(`=========================`);
         scraperEmitter.emit('finish', {
-            total: productLinksArray.length,
-            scraped: scrapedCount,
-            errors: errorCount
+            total: totalProductsProcessed,
+            scraped: totalProductsScraped,
+            errors: totalErrors
         });
         
     } catch (err) {

@@ -176,3 +176,145 @@ exports.updateOrderStatus = async (req, res) => {
     }
 };
 
+// Admin: Get all orders with pagination and filtering
+exports.getAllOrdersAdmin = async (req, res) => {
+    try {
+        // Only allow admin
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+        const {
+            page = 1,
+            limit = 12,
+            status,
+            search
+        } = req.query;
+        const filter = {};
+        if (status) filter.status = status;
+        // Search by order number or user email
+        if (search) {
+            filter.$or = [
+                { orderNumber: { $regex: search, $options: 'i' } }
+            ];
+            // Find users by email
+            const users = await User.find({ email: { $regex: search, $options: 'i' } }).select('_id');
+            if (users.length > 0) {
+                filter.$or.push({ user: { $in: users.map(u => u._id) } });
+            }
+        }
+        const skip = (page - 1) * limit;
+        const orders = await Order.find(filter)
+            .populate('user', 'email name')
+            .sort({ createdAt: -1 })
+            .limit(Number(limit))
+            .skip(Number(skip));
+        const total = await Order.countDocuments(filter);
+        res.status(200).json({
+            success: true,
+            data: {
+                orders,
+                pagination: {
+                    page: Number(page),
+                    limit: Number(limit),
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Bulk update order status (admin)
+exports.bulkUpdateOrderStatus = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+        const { orderIds, status } = req.body;
+        if (!Array.isArray(orderIds) || !status) {
+            return res.status(400).json({ success: false, message: 'orderIds (array) and status are required' });
+        }
+        const result = await Order.updateMany(
+            { _id: { $in: orderIds } },
+            { $set: { status } }
+        );
+        res.status(200).json({ success: true, message: `Updated ${result.nModified || result.modifiedCount} orders` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+// Bulk delete orders (admin)
+exports.bulkDeleteOrders = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+        const { orderIds } = req.body;
+        if (!Array.isArray(orderIds)) {
+            return res.status(400).json({ success: false, message: 'orderIds (array) is required' });
+        }
+        const result = await Order.deleteMany({ _id: { $in: orderIds } });
+        res.status(200).json({ success: true, message: `Deleted ${result.deletedCount} orders` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+// Export orders (admin, CSV/Excel)
+const { Parser } = require('json2csv');
+const ExcelJS = require('exceljs');
+exports.exportOrders = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+        const { format = 'csv', status, search } = req.query;
+        const filter = {};
+        if (status) filter.status = status;
+        if (search) {
+            filter.$or = [
+                { orderNumber: { $regex: search, $options: 'i' } }
+            ];
+            const users = await User.find({ email: { $regex: search, $options: 'i' } }).select('_id');
+            if (users.length > 0) {
+                filter.$or.push({ user: { $in: users.map(u => u._id) } });
+            }
+        }
+        const orders = await Order.find(filter).populate('user', 'email name').sort({ createdAt: -1 });
+        const plainOrders = orders.map(o => ({
+            orderNumber: o.orderNumber,
+            user: o.user?.email || o.user,
+            status: o.status,
+            total: o.pricing?.total || o.total,
+            createdAt: o.createdAt,
+            items: o.items.length
+        }));
+        if (format === 'excel') {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Orders');
+            worksheet.columns = [
+                { header: 'Order #', key: 'orderNumber' },
+                { header: 'User', key: 'user' },
+                { header: 'Status', key: 'status' },
+                { header: 'Total', key: 'total' },
+                { header: 'Created At', key: 'createdAt' },
+                { header: 'Items', key: 'items' }
+            ];
+            worksheet.addRows(plainOrders);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename=orders.xlsx');
+            await workbook.xlsx.write(res);
+            res.end();
+        } else {
+            const parser = new Parser();
+            const csv = parser.parse(plainOrders);
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename=orders.csv');
+            res.send(csv);
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+

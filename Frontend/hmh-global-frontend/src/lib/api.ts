@@ -91,6 +91,10 @@ class ApiService {
     return response.data
   }
 
+  async getBlob(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<Blob>> {
+    return this.instance.get(url, { ...config, responseType: 'blob' });
+  }
+
   setAuthToken(token: string) {
     this.instance.defaults.headers.common['Authorization'] = `Bearer ${token}`
   }

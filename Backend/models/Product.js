@@ -113,6 +113,10 @@ const productSchema = new mongoose.Schema({
     soldCount: {
         type: Number,
         default: 0
+    },
+    metadata: {
+        sourceUrl: String,
+        scrapedAt: Date
     }
 }, {
     timestamps: true

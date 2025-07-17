@@ -16,16 +16,18 @@ const transporter = nodemailer.createTransport({
 const createUser = async (req, res) => {
     console.log('[UserController] createUser called. body:', req.body);
     try {
-        const { name, email, password, role} = req.body;
+        let { name, email, password, role} = req.body;
 
         if (!name || !email || !password || !role) {
             return res.status(400).json({ message: "All required fields must be filled" });
         }
 
+        email = email.trim().toLowerCase(); // Ensure lowercase and trimmed
+
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(409).json({ message: "Email already in use" });
 
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[cC][oO][mM]$/;
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ message: "Invalid email format" });
         }
@@ -39,7 +41,7 @@ const createUser = async (req, res) => {
         const isAdmin = role === 'admin';
         const newUser = new User({
             name,
-            email,
+            email, // Already lowercased
             password: hashedPassword,
             emailVerified: isAdmin ? true : false,
             role
@@ -120,7 +122,8 @@ const verifyEmail = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-    const { email, password} = req.body;
+    let { email, password} = req.body;
+    email = email.trim().toLowerCase(); // Ensure lowercase and trimmed
     console.log('[UserController] loginUser called. email:', email);
     try {
         const user = await User.findOne({ email });
@@ -135,12 +138,18 @@ const loginUser = async (req, res) => {
 
         const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET);
 
-        await transporter.sendMail({
-            from: `"HMH Global" <${process.env.SMTP_USER}>`,
-            to: user.email,
-            subject: "New Login Alert",
-            html: `<p>Hello ${user.name},</p><p>You just logged in from a new device.</p>`
-        });
+        // Send login notification email (non-blocking)
+        try {
+            await transporter.sendMail({
+                from: `"HMH Global" <${process.env.SMTP_USER}>`,
+                to: user.email,
+                subject: "New Login Alert",
+                html: `<p>Hello ${user.name},</p><p>You just logged in from a new device.</p>`
+            });
+        } catch (emailError) {
+            console.warn('[UserController] Login email notification failed:', emailError.message);
+            // Continue with login process even if email fails
+        }
 
         // Split name into firstName and lastName
         const [firstName, ...rest] = (user.name || '').split(' ');
