@@ -36,22 +36,19 @@ const ProductDetail: React.FC = () => {
   })
   const [showReviewForm, setShowReviewForm] = useState(false)
 
-  // Fetch product details
+  // Fetch product details - moved before early return to comply with hooks rules
   const { data: productData, isLoading: productLoading } = useQuery({
     queryKey: ['product', id],
     queryFn: () => productService.getProduct(id!),
-    enabled: !!id,
+    enabled: !!id && id !== 'undefined' && id !== 'null',
   })
 
   // Fetch product reviews
   const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
     queryKey: ['reviews', id],
     queryFn: () => reviewService.getProductReviews(id!),
-    enabled: !!id,
+    enabled: !!id && id !== 'undefined' && id !== 'null',
   })
-
-  const product = productData?.data
-  const reviews = reviewsData?.data || []
 
   // Add to cart mutation
   const addToCartMutation = useMutation({
@@ -80,6 +77,23 @@ const ProductDetail: React.FC = () => {
       toast.error(error.response?.data?.message || 'Failed to add review')
     },
   })
+
+  // Early return for undefined or invalid product ID
+  if (!id || id === 'undefined' || id === 'null') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid Product</h1>
+          <p className="text-gray-600 mb-6">The product ID is invalid or missing.</p>
+          <Button onClick={() => navigate('/products')}>Back to Products</Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Use correct backend response structure
+  const product = productData?.data
+  const reviews = reviewsData?.data || []
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
@@ -189,7 +203,7 @@ const ProductDetail: React.FC = () => {
           <div>
             <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-white">
               <img
-                src={product.images[selectedImage] || '/api/placeholder/600/600'}
+                src={product.images[selectedImage] ? `http://localhost:5000/uploads/products/${product.images[selectedImage]}` : '/api/placeholder/600/600'}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -204,7 +218,7 @@ const ProductDetail: React.FC = () => {
                   }`}
                 >
                   <img
-                    src={image || '/api/placeholder/80/80'}
+                    src={image ? `http://localhost:5000/uploads/products/${image}` : '/api/placeholder/80/80'}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
@@ -383,7 +397,7 @@ const ProductDetail: React.FC = () => {
                     {Object.entries(product.specifications).map(([key, value]) => (
                       <div key={key} className="flex justify-between py-2 border-b">
                         <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                        <span className="text-gray-600">{value}</span>
+                        <span className="text-gray-600">{String(value)}</span>
                       </div>
                     ))}
                   </div>

@@ -12,6 +12,7 @@ export interface User {
 
 export interface Category {
   id: string
+  _id?: string
   name: string
   description?: string
   parentId?: string
@@ -22,6 +23,7 @@ export interface Category {
 
 export interface Product {
   id: string
+  _id?: string
   name: string
   description: string
   price: number
@@ -125,10 +127,11 @@ export interface ApiResponse<T> {
 export interface PaginatedResponse<T> {
   data: T[]
   pagination: {
-    page: number
-    limit: number
+    current: string
+    hasNext: boolean
+    hasPrev: boolean
+    pages: number
     total: number
-    totalPages: number
   }
 }
 

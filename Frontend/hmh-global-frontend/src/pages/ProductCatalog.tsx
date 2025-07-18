@@ -43,7 +43,8 @@ const ProductCatalog: React.FC = () => {
     queryFn: () => categoryService.getCategories(),
   })
 
-  const products = productsData?.data?.data || []
+  // Use correct backend response structure
+  const products: Product[] = productsData?.data?.data || []
   const pagination = productsData?.data?.pagination
   const categories = categoriesData?.data || []
 
@@ -86,10 +87,10 @@ const ProductCatalog: React.FC = () => {
   const ProductCard: React.FC<{ product: Product }> = ({ product }) => (
     <Card className="group hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="p-0">
-        <Link to={`/products/${product.id}`}>
+        <Link to={`/products/${product._id || product.id}`}>
           <div className="aspect-square overflow-hidden rounded-t-lg">
             <img
-              src={product.images[0] || '/api/placeholder/300/300'}
+              src={product.images[0] ? `http://localhost:5000/uploads/products/${product.images[0]}` : '/api/placeholder/300/300'}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
             />
@@ -99,7 +100,7 @@ const ProductCatalog: React.FC = () => {
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <CardTitle className="text-lg font-semibold line-clamp-2">
-            <Link to={`/products/${product.id}`} className="hover:text-blue-600">
+            <Link to={`/products/${product._id || product.id}`} className="hover:text-blue-600">
               {product.name}
             </Link>
           </CardTitle>
@@ -245,7 +246,7 @@ const ProductCatalog: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="">All Categories</SelectItem>
                       {categories.map((category: Category) => (
-                        <SelectItem key={category.id} value={category.id}>
+                        <SelectItem key={category._id || category.id} value={category._id || category.id}>
                           {category.name}
                         </SelectItem>
                       ))}
@@ -311,24 +312,24 @@ const ProductCatalog: React.FC = () => {
               <p className="text-gray-600 text-lg">No products found matching your criteria.</p>
             </div>
           ) : (
-            products.map((product: Product) => (
-              <ProductCard key={product.id} product={product} />
+            products.map((product) => (
+              <ProductCard key={product._id || product.id} product={product as Product} />
             ))
           )}
         </div>
 
         {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
+        {pagination && pagination.pages > 1 && (
           <div className="flex justify-center items-center space-x-2">
             <Button
               variant="outline"
-              disabled={currentPage === 1}
+              disabled={!pagination.hasPrev}
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             >
               Previous
             </Button>
             <div className="flex space-x-1">
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
                 const pageNum = i + 1
                 return (
                   <Button
@@ -344,8 +345,8 @@ const ProductCatalog: React.FC = () => {
             </div>
             <Button
               variant="outline"
-              disabled={currentPage === pagination.totalPages}
-              onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+              disabled={!pagination.hasNext}
+              onClick={() => setCurrentPage(prev => Math.min(pagination.pages, prev + 1))}
             >
               Next
             </Button>

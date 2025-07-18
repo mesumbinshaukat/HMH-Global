@@ -118,13 +118,15 @@ exports.getAllProducts = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            products,
-            pagination: {
-                current: page,
-                pages: Math.ceil(total / limit),
-                total,
-                hasNext: page < Math.ceil(total / limit),
-                hasPrev: page > 1
+            data: {
+                data: products,
+                pagination: {
+                    current: page,
+                    pages: Math.ceil(total / limit),
+                    total,
+                    hasNext: page < Math.ceil(total / limit),
+                    hasPrev: page > 1
+                }
             }
         });
     } catch (error) {
@@ -226,13 +228,15 @@ exports.getProductsByCategory = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            products,
-            pagination: {
-                current: page,
-                pages: Math.ceil(total / limit),
-                total,
-                hasNext: page < Math.ceil(total / limit),
-                hasPrev: page > 1
+            data: {
+                data: products,
+                pagination: {
+                    current: page,
+                    pages: Math.ceil(total / limit),
+                    total,
+                    hasNext: page < Math.ceil(total / limit),
+                    hasPrev: page > 1
+                }
             }
         });
     } catch (error) {
@@ -250,7 +254,7 @@ exports.getFeaturedProducts = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(limit * 1);
 
-        res.status(200).json({ success: true, products });
+        res.status(200).json({ success: true, data: products });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -283,14 +287,16 @@ exports.searchProducts = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            products,
-            query: q,
-            pagination: {
-                current: page,
-                pages: Math.ceil(total / limit),
-                total,
-                hasNext: page < Math.ceil(total / limit),
-                hasPrev: page > 1
+            data: {
+                data: products,
+                query: q,
+                pagination: {
+                    current: page,
+                    pages: Math.ceil(total / limit),
+                    total,
+                    hasNext: page < Math.ceil(total / limit),
+                    hasPrev: page > 1
+                }
             }
         });
     } catch (error) {

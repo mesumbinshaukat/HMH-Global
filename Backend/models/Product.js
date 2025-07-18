@@ -119,7 +119,23 @@ const productSchema = new mongoose.Schema({
         scrapedAt: Date
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { 
+        virtuals: true,
+        transform: function(doc, ret) {
+            // Transform images to return array of URLs instead of objects
+            if (ret.images && Array.isArray(ret.images)) {
+                ret.images = ret.images.map(img => {
+                    if (typeof img === 'object' && img.url) {
+                        return img.url;
+                    }
+                    return img;
+                });
+            }
+            return ret;
+        }
+    },
+    toObject: { virtuals: true }
 });
 
 // Virtual for discount percentage
@@ -141,6 +157,21 @@ productSchema.virtual('stockStatus').get(function() {
     if (this.inventory.quantity === 0) return 'out-of-stock';
     if (this.inventory.quantity <= this.inventory.lowStockThreshold) return 'low-stock';
     return 'in-stock';
+});
+
+// Virtual for stockQuantity (frontend compatibility)
+productSchema.virtual('stockQuantity').get(function() {
+    return this.inventory.quantity;
+});
+
+// Virtual for averageRating (frontend compatibility)
+productSchema.virtual('averageRating').get(function() {
+    return this.ratings.average;
+});
+
+// Virtual for reviewCount (frontend compatibility)
+productSchema.virtual('reviewCount').get(function() {
+    return this.ratings.count;
 });
 
 // Pre-save middleware to generate slug

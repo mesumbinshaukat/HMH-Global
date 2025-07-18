@@ -5,10 +5,15 @@ import { Card, CardContent } from '../components/ui/card'
 import { useFeaturedProducts, useCategories } from '../hooks/useQuery'
 import { formatPrice } from '../lib/utils'
 import { Badge } from '../components/ui/badge'
+import { Category, Product } from '../types'
 
 const HomePage: React.FC = () => {
   const { data: featuredProducts, isLoading: loadingProducts } = useFeaturedProducts()
   const { data: categories, isLoading: loadingCategories } = useCategories()
+
+  // Use correct backend response structure
+  const featured = featuredProducts?.data || []
+  const categoryList = categories?.data || []
 
   return (
     <div className="min-h-screen">
@@ -69,8 +74,8 @@ const HomePage: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {categories?.data?.slice(0, 8).map((category) => (
-                <Link key={category.id} to={`/products?category=${category.id}`}>
+              {categoryList.slice(0, 8).map((category: Category) => (
+                <Link key={category._id || category.id} to={`/products?category=${category._id || category.id}`}>
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                     <CardContent className="p-6 text-center">
                       <div className="h-32 bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
@@ -109,15 +114,15 @@ const HomePage: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredProducts?.data?.slice(0, 8).map((product) => (
-                <Link key={product.id} to={`/products/${product.id}`}>
+              {featured.slice(0, 8).map((product: Product) => (
+                <Link key={product._id || product.id} to={`/products/${product._id || product.id}`}>
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                     <CardContent className="p-0">
                       <div className="relative">
                         <div className="h-48 bg-gray-100 rounded-t-lg flex items-center justify-center">
                           {product.images?.[0] ? (
                             <img 
-                              src={product.images[0]} 
+                              src={`http://localhost:5000/uploads/products/${product.images[0]}`} 
                               alt={product.name}
                               className="w-full h-full object-cover rounded-t-lg"
                             />
@@ -153,7 +158,7 @@ const HomePage: React.FC = () => {
                           <div className="flex items-center space-x-1">
                             <span className="text-yellow-500">★</span>
                             <span className="text-sm text-gray-600">
-                              {product.averageRating.toFixed(1)}
+                              {typeof product.averageRating === 'number' ? product.averageRating.toFixed(1) : '0.0'}
                             </span>
                           </div>
                         </div>

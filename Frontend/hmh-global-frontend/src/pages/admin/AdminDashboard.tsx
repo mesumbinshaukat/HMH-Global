@@ -30,7 +30,6 @@ const AdminDashboard: React.FC = () => {
   const [showProductFilters, setShowProductFilters] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const queryClient = useQueryClient();
 
   // --- Order Management State ---
@@ -113,7 +112,8 @@ const AdminDashboard: React.FC = () => {
     queryKey: ['admin-products', productFilters, productPage],
     queryFn: () => productService.getProducts(productFilters, productPage, 12),
   });
-  const products = productsData?.data?.data || [];
+  // Use correct backend response structure
+  const products: Product[] = productsData?.data?.data || [];
   const pagination = productsData?.data?.pagination;
 
   // Fetch categories
@@ -430,9 +430,9 @@ const AdminDashboard: React.FC = () => {
                   ) : products.length === 0 ? (
                     <tr><td colSpan={8} className="text-center py-8">No products found.</td></tr>
                   ) : (
-                    products.map((product) => (
+                    products.map((product: Product) => (
                       <tr key={product.id} className="border-b">
-                        <td className="px-4 py-2"><img src={product.images[0] || '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
+                        <td className="px-4 py-2"><img src={product.images[0] ? `http://localhost:5000/uploads/products/${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
                         <td className="px-4 py-2 font-medium">{product.name}</td>
                         <td className="px-4 py-2">{product.category?.name || '-'}</td>
                         <td className="px-4 py-2">{product.brand || '-'}</td>
@@ -442,7 +442,7 @@ const AdminDashboard: React.FC = () => {
                           {product.isActive ? <Badge variant="outline" className="text-green-700 border-green-400">Active</Badge> : <Badge variant="outline" className="text-red-700 border-red-400">Inactive</Badge>}
                         </td>
                         <td className="px-4 py-2 flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setSelectedProduct(product)}><Edit className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => console.log('Edit product:', product.id)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="destructive" onClick={() => handleDeleteProduct(product.id)}><Trash className="w-4 h-4" /></Button>
                         </td>
                       </tr>
@@ -451,16 +451,16 @@ const AdminDashboard: React.FC = () => {
                 </tbody>
               </table>
               {/* Pagination */}
-              {pagination && pagination.totalPages > 1 && (
+              {pagination && pagination.pages > 1 && (
                 <div className="flex justify-center items-center space-x-2 mt-4">
                   <Button variant="outline" disabled={productPage === 1} onClick={() => setProductPage((p) => Math.max(1, p - 1))}>Previous</Button>
-                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
                     const pageNum = i + 1;
                     return (
                       <Button key={pageNum} variant={productPage === pageNum ? 'default' : 'outline'} onClick={() => setProductPage(pageNum)} className="w-10 h-10">{pageNum}</Button>
                     );
                   })}
-                  <Button variant="outline" disabled={productPage === pagination.totalPages} onClick={() => setProductPage((p) => Math.min(pagination.totalPages, p + 1))}>Next</Button>
+                  <Button variant="outline" disabled={productPage === pagination.pages} onClick={() => setProductPage((p) => Math.min(pagination.pages, p + 1))}>Next</Button>
                 </div>
               )}
             </CardContent>
@@ -483,9 +483,9 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {importedProducts.map((product) => (
+                    {importedProducts.map((product: Product) => (
                       <tr key={product.id} className="border-b">
-                        <td className="px-4 py-2"><img src={product.images[0] || '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
+                        <td className="px-4 py-2"><img src={product.images[0] ? `http://localhost:5000/uploads/products/${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
                         <td className="px-4 py-2 font-medium">{product.name}</td>
                         <td className="px-4 py-2">{product.category?.name || '-'}</td>
                         <td className="px-4 py-2">${product.salePrice ? <span className="text-red-600">{product.salePrice}</span> : product.price}</td>
@@ -625,16 +625,16 @@ const AdminDashboard: React.FC = () => {
                 </tbody>
               </table>
               {/* Pagination */}
-              {orderPagination && orderPagination.totalPages > 1 && (
+              {orderPagination && orderPagination.pages > 1 && (
                 <div className="flex justify-center items-center space-x-2 mt-4">
                   <Button variant="outline" disabled={orderPage === 1} onClick={() => setOrderPage((p) => Math.max(1, p - 1))}>Previous</Button>
-                  {Array.from({ length: Math.min(5, orderPagination.totalPages) }, (_, i) => {
+                  {Array.from({ length: Math.min(5, orderPagination.pages) }, (_, i) => {
                     const pageNum = i + 1;
                     return (
                       <Button key={pageNum} variant={orderPage === pageNum ? 'default' : 'outline'} onClick={() => setOrderPage(pageNum)} className="w-10 h-10">{pageNum}</Button>
                     );
                   })}
-                  <Button variant="outline" disabled={orderPage === orderPagination.totalPages} onClick={() => setOrderPage((p) => Math.min(orderPagination.totalPages, p + 1))}>Next</Button>
+                  <Button variant="outline" disabled={orderPage === orderPagination.pages} onClick={() => setOrderPage((p) => Math.min(orderPagination.pages, p + 1))}>Next</Button>
                 </div>
               )}
             </CardContent>
