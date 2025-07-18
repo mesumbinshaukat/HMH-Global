@@ -203,7 +203,7 @@ const ProductDetail: React.FC = () => {
           <div>
             <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-white">
               <img
-                src={product.images[selectedImage] ? `http://localhost:5000/uploads/products/${product.images[selectedImage]}` : '/api/placeholder/600/600'}
+                src={product.images[selectedImage] ? `http://localhost:5000${product.images[selectedImage]}` : '/api/placeholder/600/600'}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -218,7 +218,7 @@ const ProductDetail: React.FC = () => {
                   }`}
                 >
                   <img
-                    src={image ? `http://localhost:5000/uploads/products/${image}` : '/api/placeholder/80/80'}
+                    src={image ? `http://localhost:5000${image}` : '/api/placeholder/80/80'}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
                   />

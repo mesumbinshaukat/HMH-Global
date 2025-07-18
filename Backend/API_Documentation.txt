@@ -1,165 +1,59 @@
 # API Documentation
 
-## User Authentication
-
-### Register a User
-- **URL:** `http://localhost:5000/api/users/register`
-- **Method:** `POST`
-- **Payload:**
-  ```json
-  {
-    "name": "Huzaifa",
-    "email": "huzaifairfan2144@gmail.com",
-    "password": "Owner123",
-    "role": "customer"
-  }
-  ```
-- **Headers:** None
-
-### Login
-- **URL:** `http://localhost:5000/api/users/login`
-- **Method:** `POST`
-- **Payload:**
-  ```json
-  {
-    "email": "huzaifairfan2144@gmail.com",
-    "password": "Owner123"
-  }
-  ```
-- **Headers:** None
-
-### Verify Email
-- **URL:** `http://localhost:5000/api/users/verify-email/:token`
-- **Method:** `GET`
-- **Headers:** None
-
-## Categories
-
-### Create a Category
-- **URL:** `http://localhost:5000/api/categories`
-- **Method:** `POST`
-- **Payload:**
-  ```json
-  {
-    "name": "Electronics",
-    "description": "Devices and gadgets"
-  }
-  ```
-- **Headers:**
-  ```json
-  {
-    "Authorization": "Bearer <token>"
-  }
-  ```
-
-### Get All Categories
-- **URL:** `http://localhost:5000/api/categories`
-- **Method:** `GET`
-- **Headers:** None
+## Authentication
+- **POST /api/users/login**
+  - Body: `{ email: string, password: string }` (email is lowercased)
+  - Response: `{ success, data: { user, token }, message }`
+- **POST /api/users/register**
+  - Body: `{ name, email, password, role }` (email is lowercased)
+  - Response: `{ success, data: { user, token }, message }`
 
 ## Products
+- **GET /api/products**
+  - Query: filters, pagination
+  - Response: `{ success, data: { data: Product[], pagination }, message }`
+- **GET /api/products/:id**
+  - Response: `{ success, data: Product, message }`
 
-### Create a Product
-- **URL:** `http://localhost:5000/api/products`
-- **Method:** `POST`
-- **Payload:**
-  ```json
-  {
-    "name": "Smartphone",
-    "description": "Latest model with advanced features",
-    "price": 299,
-    "sku": "SP123",
-    "category": "<category_id>"
-  }
-  ```
-- **Headers:**
-  ```json
-  {
-    "Authorization": "Bearer <token>"
-  }
-  ```
+## Categories
+- **GET /api/categories**
+  - Response: `{ success, data: Category[], message }`
 
-### Get All Products
-- **URL:** `http://localhost:5000/api/products`
-- **Method:** `GET`
-- **Headers:** None
-
-## Cart (Hybrid: Guest or User)
-
-### How it works
-- **Guest users:** Cart is stored in backend, identified by a sessionId cookie (set automatically by server).
-- **Logged-in users:** Cart is tied to user account (JWT required).
-- **On login:** Guest cart (by sessionId) can be merged into user cart via /api/cart/merge.
-
-### Session Cookie
-- The backend sets a `sessionId` cookie for guests (httpOnly, 7 days).
-- The frontend should send credentials (cookies) with all cart requests.
-
-### Get Cart
-- **URL:** `http://localhost:5000/api/cart`
-- **Method:** `GET`
-- **Headers:**
-  - For guests: none (cookie sent automatically)
-  - For users: `Authorization: Bearer <token>`
-
-### Add Item to Cart
-- **URL:** `http://localhost:5000/api/cart/add`
-- **Method:** `POST`
-- **Payload:**
-  ```json
-  {
-    "productId": "<product_id>",
-    "quantity": 2
-  }
-  ```
-- **Headers:**
-  - For guests: none (cookie sent automatically)
-  - For users: `Authorization: Bearer <token>`
-
-### Update Item Quantity
-- **URL:** `http://localhost:5000/api/cart/update`
-- **Method:** `PUT`
-- **Payload:**
-  ```json
-  {
-    "productId": "<product_id>",
-    "quantity": 3
-  }
-  ```
-- **Headers:**
-  - For guests: none (cookie sent automatically)
-  - For users: `Authorization: Bearer <token>`
-
-### Remove Item from Cart
-- **URL:** `http://localhost:5000/api/cart/remove/<product_id>`
-- **Method:** `DELETE`
-- **Headers:**
-  - For guests: none (cookie sent automatically)
-  - For users: `Authorization: Bearer <token>`
-
-### Clear Cart
-- **URL:** `http://localhost:5000/api/cart/clear`
-- **Method:** `DELETE`
-- **Headers:**
-  - For guests: none (cookie sent automatically)
-  - For users: `Authorization: Bearer <token>`
-
-### Merge Guest Cart into User Cart (on login)
-- **URL:** `http://localhost:5000/api/cart/merge`
-- **Method:** `POST`
-- **Headers:**
-  - `Authorization: Bearer <token>` (user must be logged in)
-  - Cookie: `sessionId` (sent automatically)
-- **Payload:**
-  ```json
-  {
-    // Optionally, can include userId if not using JWT auth
-  }
-  ```
-- **Description:**
-  - Merges the guest cart (by sessionId) into the logged-in user's cart. After merging, the guest cart is deleted.
+## Cart
+- **GET /api/cart**
+  - Auth required
+  - Response: `{ success, data: Cart, message }`
 
 ## Orders
+- **GET /api/orders**
+  - Auth required
+  - Response: `{ success, data: Order[], message }`
 
-### Create Order
-- **URL:** `
+## Admin Endpoints
+- **POST /api/admin/scrape-northwest**
+  - Auth: Bearer token (admin)
+  - Starts product scraping/import
+  - Response: `{ success, message }`
+- **GET /api/admin/scrape-progress?token=JWT**
+  - SSE endpoint for real-time scraping progress
+  - Auth: JWT token in query param
+  - Response: SSE events: `start`, `progress`, `finish`, `error`
+
+### SSE Authentication Note
+- SSE endpoints require JWT token in the `?token=...` query parameter, not in the Authorization header.
+
+## Error Handling
+- All errors return `{ success: false, error: string, message: string }`
+- Check `.error` and `.message` fields for details.
+
+## Example Response
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "..."
+}
+```
+
+---
+For more details, see the main README and code comments.

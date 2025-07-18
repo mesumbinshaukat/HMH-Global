@@ -432,7 +432,7 @@ const AdminDashboard: React.FC = () => {
                   ) : (
                     products.map((product: Product) => (
                       <tr key={product.id} className="border-b">
-                        <td className="px-4 py-2"><img src={product.images[0] ? `http://localhost:5000/uploads/products/${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
+                        <td className="px-4 py-2"><img src={product.images[0] ? `http://localhost:5000${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
                         <td className="px-4 py-2 font-medium">{product.name}</td>
                         <td className="px-4 py-2">{product.category?.name || '-'}</td>
                         <td className="px-4 py-2">{product.brand || '-'}</td>
@@ -485,7 +485,7 @@ const AdminDashboard: React.FC = () => {
                   <tbody>
                     {importedProducts.map((product: Product) => (
                       <tr key={product.id} className="border-b">
-                        <td className="px-4 py-2"><img src={product.images[0] ? `http://localhost:5000/uploads/products/${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
+                        <td className="px-4 py-2"><img src={product.images[0] ? `http://localhost:5000${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
                         <td className="px-4 py-2 font-medium">{product.name}</td>
                         <td className="px-4 py-2">{product.category?.name || '-'}</td>
                         <td className="px-4 py-2">${product.salePrice ? <span className="text-red-600">{product.salePrice}</span> : product.price}</td>

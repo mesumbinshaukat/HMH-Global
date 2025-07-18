@@ -122,7 +122,7 @@ const HomePage: React.FC = () => {
                         <div className="h-48 bg-gray-100 rounded-t-lg flex items-center justify-center">
                           {product.images?.[0] ? (
                             <img 
-                              src={`http://localhost:5000/uploads/products/${product.images[0]}`} 
+                              src={`http://localhost:5000${product.images[0]}`} 
                               alt={product.name}
                               className="w-full h-full object-cover rounded-t-lg"
                             />

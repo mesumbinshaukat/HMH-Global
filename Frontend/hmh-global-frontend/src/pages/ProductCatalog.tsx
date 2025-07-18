@@ -90,7 +90,7 @@ const ProductCatalog: React.FC = () => {
         <Link to={`/products/${product._id || product.id}`}>
           <div className="aspect-square overflow-hidden rounded-t-lg">
             <img
-              src={product.images[0] ? `http://localhost:5000/uploads/products/${product.images[0]}` : '/api/placeholder/300/300'}
+              src={product.images[0] ? `http://localhost:5000${product.images[0]}` : '/api/placeholder/300/300'}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
             />
