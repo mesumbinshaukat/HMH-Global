@@ -84,10 +84,32 @@ const ProductCatalog: React.FC = () => {
     setCurrentPage(1)
   }
 
-  const ProductCard: React.FC<{ product: Product }> = ({ product }) => (
+  const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+  const productId = product._id || product.id;
+  if (!productId) {
+    console.warn('ProductCard: Missing product ID for product:', product);
+    return (
+      <Card className="group hover:shadow-lg transition-shadow duration-200 opacity-50">
+        <CardHeader className="p-0">
+          <div className="aspect-square overflow-hidden rounded-t-lg bg-gray-100 flex items-center justify-center">
+            <span className="text-gray-400">No Product ID</span>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 text-center">
+          <CardTitle className="text-lg font-semibold line-clamp-2 text-gray-400">
+            {product.name || 'Unknown Product'}
+          </CardTitle>
+          <CardDescription className="text-sm text-gray-400 mb-2">
+            Product data is incomplete.
+          </CardDescription>
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
     <Card className="group hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="p-0">
-        <Link to={`/products/${product._id || product.id}`}>
+        <Link to={`/products/${encodeURIComponent(productId)}`}>
           <div className="aspect-square overflow-hidden rounded-t-lg">
             <img
               src={product.images[0] ? `http://localhost:5000${product.images[0]}` : '/api/placeholder/300/300'}
@@ -100,7 +122,7 @@ const ProductCatalog: React.FC = () => {
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <CardTitle className="text-lg font-semibold line-clamp-2">
-            <Link to={`/products/${product._id || product.id}`} className="hover:text-blue-600">
+            <Link to={`/products/${encodeURIComponent(productId)}`} className="hover:text-blue-600">
               {product.name}
             </Link>
           </CardTitle>
@@ -154,7 +176,8 @@ const ProductCatalog: React.FC = () => {
         </div>
       </CardContent>
     </Card>
-  )
+  );
+}
 
   const ProductSkeleton = () => (
     <Card>
@@ -329,19 +352,73 @@ const ProductCatalog: React.FC = () => {
               Previous
             </Button>
             <div className="flex space-x-1">
-              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-                const pageNum = i + 1
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? 'default' : 'outline'}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className="w-10 h-10"
-                  >
-                    {pageNum}
-                  </Button>
-                )
-              })}
+              {/* Smart pagination: show first, last, current, two before/after, ellipses */}
+{(() => {
+  const pages = [];
+  const total = pagination.pages;
+  const maxButtons = 7; // first, last, current, 2 before, 2 after, and ellipses
+  
+  if (total <= maxButtons) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(
+        <Button
+          key={i}
+          variant={currentPage === i ? 'default' : 'outline'}
+          onClick={() => setCurrentPage(i)}
+          className="w-10 h-10"
+        >
+          {i}
+        </Button>
+      );
+    }
+  } else {
+    // Always show first page
+    pages.push(
+      <Button
+        key={1}
+        variant={currentPage === 1 ? 'default' : 'outline'}
+        onClick={() => setCurrentPage(1)}
+        className="w-10 h-10"
+      >
+        1
+      </Button>
+    );
+    // Show ellipsis if needed
+    if (currentPage > 4) {
+      pages.push(<span key="start-ellipsis" className="px-2">...</span>);
+    }
+    // Show pages around current
+    for (let i = Math.max(2, currentPage - 2); i <= Math.min(total - 1, currentPage + 2); i++) {
+      if (i === 1 || i === total) continue;
+      pages.push(
+        <Button
+          key={i}
+          variant={currentPage === i ? 'default' : 'outline'}
+          onClick={() => setCurrentPage(i)}
+          className="w-10 h-10"
+        >
+          {i}
+        </Button>
+      );
+    }
+    // Show ellipsis if needed
+    if (currentPage < total - 3) {
+      pages.push(<span key="end-ellipsis" className="px-2">...</span>);
+    }
+    // Always show last page
+    pages.push(
+      <Button
+        key={total}
+        variant={currentPage === total ? 'default' : 'outline'}
+        onClick={() => setCurrentPage(total)}
+        className="w-10 h-10"
+      >
+        {total}
+      </Button>
+    );
+  }
+  return pages;
+})()}
             </div>
             <Button
               variant="outline"

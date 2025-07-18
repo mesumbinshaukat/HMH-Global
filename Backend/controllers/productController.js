@@ -46,7 +46,7 @@ exports.createProduct = async (req, res) => {
         const newProduct = new Product(req.body);
         await newProduct.save();
         await newProduct.populate('category subcategory');
-        res.status(201).json({ success: true, product: newProduct, message: 'Product created successfully' });
+        res.status(201).json({ success: true, data: newProduct, message: 'Product created successfully' });
     } catch (error) {
         if (error.code === 11000) {
             return res.status(409).json({ success: false, message: 'Product with this SKU already exists' });
@@ -148,7 +148,7 @@ exports.getProductById = async (req, res) => {
         product.views += 1;
         await product.save();
 
-        res.status(200).json({ success: true, product });
+        res.status(200).json({ success: true, data: product });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -168,7 +168,7 @@ exports.getProductBySlug = async (req, res) => {
         product.views += 1;
         await product.save();
 
-        res.status(200).json({ success: true, product });
+        res.status(200).json({ success: true, data: product });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
