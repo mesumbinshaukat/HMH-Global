@@ -11,7 +11,9 @@ const ensureCartIndexes = require('./scripts/ensureCartIndexes');
 
 // CORS options
 const corsOptions = {
-    origin: 'http://localhost:3000',
+    origin: process.env.NODE_ENV === 'production' 
+        ? [process.env.FRONTEND_URL, 'http://138.68.184.23', 'http://138.68.184.23:3000']
+        : 'http://localhost:3000',
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true, // Allow cookies
@@ -23,6 +25,11 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve static files from React build in production
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, 'public')));
+}
 
 // Request logger middleware
 app.use((req, res, next) => {
@@ -53,6 +60,13 @@ app.use("/api/cart", require('./routes/CartRoutes')); //checked
 app.use("/api/orders", require('./routes/OrderRoutes')); //checked (Email isn't sending on Order Placement, other than that it works fine)
 app.use("/api/reviews", require('./routes/ReviewRoutes')); //checked
 app.use("/api/admin", require('./routes/AdminRoutes'));
+
+// Catch-all handler for React SPA in production
+if (process.env.NODE_ENV === 'production') {
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    });
+}
 
 const PORT = process.env.PORT || 5000;
 

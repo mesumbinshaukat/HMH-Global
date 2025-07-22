@@ -140,7 +140,10 @@ const Header: React.FC = () => {
               )}
             </div>
             {/* Products Link */}
-            <Link to="/products" className="text-gray-700 hover:text-primary transition-colors">
+            <Link to="/products" className="text-gray-700 hover:text-primary transition-colors" onClick={(e) => {
+              e.preventDefault();
+              navigate('/products');
+            }}>
               Products
             </Link>
             
@@ -224,39 +227,50 @@ const Header: React.FC = () => {
                 Categories <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${categoryMenuOpen ? 'rotate-180' : ''}`} />
               </button>
               {categoryMenuOpen && (
-                <div className="mt-2 max-h-64 overflow-y-auto bg-white rounded shadow border p-2">
-                  <Input
-                    type="text"
-                    placeholder="Search categories..."
-                    value={categorySearch}
-                    onChange={e => setCategorySearch(e.target.value)}
-                    className="mb-2"
-                  />
-                  <ul className="space-y-1">
-                    {filteredCategories.map((cat: Category) => (
-                      <li key={cat._id || cat.id}>
-                        <Link
-                          to={`/products?category=${cat._id || cat.id}`}
-                          className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium truncate"
-                          onClick={() => {
-                            setCategoryMenuOpen(false)
-                            closeMobileMenu()
-                          }}
-                        >
-                          {cat.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+  <div className="mt-2 max-h-64 overflow-y-auto bg-white rounded shadow border p-2 z-50 absolute right-0 max-w-screen-sm w-[90vw] sm:w-[500px] md:w-[600px] overflow-x-auto">
+    <Input
+      type="text"
+      placeholder="Search categories..."
+      value={categorySearch}
+      onChange={e => setCategorySearch(e.target.value)}
+      className="mb-2"
+    />
+    <ul className="space-y-1">
+      {filteredCategories.map((cat: Category) => (
+        <li key={cat._id || cat.id}>
+          <button
+            type="button"
+            className="block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium truncate"
+            onClick={() => {
+              setCategoryMenuOpen(false);
+              closeMobileMenu();
+              const url = `/products?category=${cat._id || cat.id}`;
+              if (window.location.pathname + window.location.search === url) {
+                // If already on the same category, force a reload
+                window.location.href = url;
+              } else {
+                navigate(url);
+              }
+            }}
+          >
+            {cat.name}
+          </button>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
             </div>
             {/* Mobile Menu Items */}
             <div className="space-y-2">
               <Link 
                 to="/products" 
                 className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-                onClick={closeMobileMenu}
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                  navigate('/products');
+                }}
               >
                 Products
               </Link>

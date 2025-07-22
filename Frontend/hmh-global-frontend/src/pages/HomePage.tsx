@@ -33,7 +33,7 @@ const HomePage: React.FC = () => {
               </Button>
             </Link>
             <Link to="/about">
-              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600">
+              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600 bg-transparent">
                 Learn More
               </Button>
             </Link>

@@ -11,8 +11,11 @@ import { Badge } from '../../components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, categoryService } from '../../services';
 import { Product, Category, ProductFilters, Order } from '../../types';
-import { Trash, Edit, Search, Filter, Download } from 'lucide-react';
+import { Trash, Edit, Search, Filter, Download, Plus, Upload, X } from 'lucide-react';
 import { orderService } from '../../services/orders';
+import { Textarea } from '../../components/ui/textarea';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Label } from '../../components/ui/label';
 
 const AdminDashboard: React.FC = () => {
   const [tab, setTab] = useState('overview');
@@ -31,6 +34,43 @@ const AdminDashboard: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  
+  // --- Manual Product Upload State ---
+  const [showAddProductDialog, setShowAddProductDialog] = useState(false);
+  const [addProductForm, setAddProductForm] = useState({
+    name: '',
+    description: '',
+    price: '',
+    salePrice: '',
+    category: '',
+    brand: '',
+    stockQuantity: '',
+    images: [] as File[],
+    isFeatured: false,
+    isActive: true
+  });
+  const [addProductLoading, setAddProductLoading] = useState(false);
+  // --- Category Management State ---
+  const [categorySearch, setCategorySearch] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  // --- Product Edit State ---
+  const [showEditProductDialog, setShowEditProductDialog] = useState(false);
+  const [editProductForm, setEditProductForm] = useState({
+    id: '',
+    name: '',
+    description: '',
+    price: '',
+    salePrice: '',
+    category: '',
+    brand: '',
+    stockQuantity: '',
+    images: [] as File[],
+    isFeatured: false,
+    isActive: true
+  });
+  const [editProductLoading, setEditProductLoading] = useState(false);
 
   // --- Order Management State ---
   const [orderFilters, setOrderFilters] = useState<{ status?: string; search?: string }>({});
@@ -159,6 +199,45 @@ const AdminDashboard: React.FC = () => {
     },
   });
 
+  // Create category mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: (name: string) => categoryService.createCategory({ name }),
+    onSuccess: (data) => {
+      toast.success('Category created successfully');
+      setNewCategoryName('');
+      setCreatingCategory(false);
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      // Auto-select the new category
+      const newCategory = data.data;
+      if (newCategory) {
+        setAddProductForm(prev => ({ ...prev, category: newCategory.id }));
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to create category');
+    },
+  });
+
+  // Update product mutation
+  const updateProductMutation = useMutation({
+    mutationFn: ({ id, formData }: { id: string; formData: FormData }) => 
+      api.put(`/api/admin/products/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }),
+    onSuccess: () => {
+      toast.success('Product updated successfully');
+      setShowEditProductDialog(false);
+      resetEditProductForm();
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      fetchStats();
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to update product');
+    },
+  });
+
   // Filter for imported products (brand: Northwest Cosmetics)
   const importedProducts = products.filter((p: Product) => p.brand === 'Northwest Cosmetics');
 
@@ -281,6 +360,266 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Manual product upload handlers
+  const handleAddProductFormChange = (key: string, value: any) => {
+    setAddProductForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setAddProductForm(prev => ({ ...prev, images: files }));
+  };
+
+  const resetAddProductForm = () => {
+    setAddProductForm({
+      name: '',
+      description: '',
+      price: '',
+      salePrice: '',
+      category: '',
+      brand: '',
+      stockQuantity: '',
+      images: [],
+      isFeatured: false,
+      isActive: true
+    });
+    setCategorySearch('');
+  };
+
+  const resetEditProductForm = () => {
+    setEditProductForm({
+      id: '',
+      name: '',
+      description: '',
+      price: '',
+      salePrice: '',
+      category: '',
+      brand: '',
+      stockQuantity: '',
+      images: [],
+      isFeatured: false,
+      isActive: true
+    });
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditProductForm({
+      id: product.id,
+      name: product.name,
+      description: product.description || '',
+      price: product.price.toString(),
+      salePrice: product.salePrice?.toString() || '',
+      category: product.category?.id || '',
+      brand: product.brand || '',
+      stockQuantity: product.stockQuantity.toString(),
+      images: [],
+      isFeatured: product.isFeatured || false,
+      isActive: product.isActive
+    });
+    setShowEditProductDialog(true);
+  };
+
+  const handleEditProductFormChange = (key: string, value: any) => {
+    setEditProductForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleEditImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setEditProductForm(prev => ({ ...prev, images: files }));
+  };
+
+  const submitEditProduct = async () => {
+    if (!editProductForm.name || !editProductForm.price || !editProductForm.category || !editProductForm.stockQuantity) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setEditProductLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', editProductForm.name);
+      formData.append('description', editProductForm.description);
+      formData.append('price', editProductForm.price);
+      if (editProductForm.salePrice) {
+        formData.append('salePrice', editProductForm.salePrice);
+      }
+      formData.append('category', editProductForm.category);
+      formData.append('brand', editProductForm.brand);
+      formData.append('stockQuantity', editProductForm.stockQuantity);
+      formData.append('isFeatured', editProductForm.isFeatured.toString());
+      formData.append('isActive', editProductForm.isActive.toString());
+      
+      // Add images if any
+      editProductForm.images.forEach((image, index) => {
+        formData.append(`images`, image);
+      });
+
+      await updateProductMutation.mutateAsync({ id: editProductForm.id, formData });
+    } catch (err) {
+      // Error handled in mutation
+    } finally {
+      setEditProductLoading(false);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error('Please enter a category name');
+      return;
+    }
+    setCreatingCategory(true);
+    try {
+      await createCategoryMutation.mutateAsync(newCategoryName.trim());
+    } catch (err) {
+      // Error handled in mutation
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
+  // Filter categories based on search
+  const filteredCategories = categories.filter(cat => 
+    cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+  );
+
+  const CategorySelector = ({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    const filtered = categories.filter(cat => 
+      cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    const selectedCategory = categories.find(cat => cat.id === value);
+    
+    return (
+      <div className="relative">
+        <div 
+          className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <span className={selectedCategory ? 'text-gray-900' : 'text-gray-500'}>
+            {selectedCategory ? selectedCategory.name : placeholder}
+          </span>
+          <div className="flex items-center space-x-2">
+            {selectedCategory && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+            <Search className="w-4 h-4 text-gray-400" />
+          </div>
+        </div>
+        
+        {isOpen && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+            <div className="p-2 border-b">
+              <Input
+                placeholder="Search categories..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="p-2 border-b">
+              <div className="flex items-center space-x-2">
+                <Input
+                  placeholder="New category name..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreateCategory();
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleCreateCategory}
+                  disabled={!newCategoryName.trim() || creatingCategory}
+                >
+                  {creatingCategory ? 'Creating...' : 'Add'}
+                </Button>
+              </div>
+            </div>
+            <div className="max-h-40 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <div className="p-3 text-gray-500 text-center">
+                  {searchTerm ? 'No categories found' : 'No categories available'}
+                </div>
+              ) : (
+                filtered.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      onChange(cat.id);
+                      setIsOpen(false);
+                      setSearchTerm('');
+                    }}
+                  >
+                    {cat.name}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const handleAddProduct = async () => {
+    if (!addProductForm.name || !addProductForm.price || !addProductForm.category || !addProductForm.stockQuantity) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setAddProductLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', addProductForm.name);
+      formData.append('description', addProductForm.description);
+      formData.append('price', addProductForm.price);
+      if (addProductForm.salePrice) {
+        formData.append('salePrice', addProductForm.salePrice);
+      }
+      formData.append('category', addProductForm.category);
+      formData.append('brand', addProductForm.brand);
+      formData.append('stockQuantity', addProductForm.stockQuantity);
+      formData.append('isFeatured', addProductForm.isFeatured.toString());
+      formData.append('isActive', addProductForm.isActive.toString());
+      
+      // Add images
+      addProductForm.images.forEach((image, index) => {
+        formData.append(`images`, image);
+      });
+
+      await api.post('/api/admin/products', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast.success('Product added successfully!');
+      setShowAddProductDialog(false);
+      resetAddProductForm();
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      fetchStats();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to add product');
+    } finally {
+      setAddProductLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
@@ -363,7 +702,10 @@ const AdminDashboard: React.FC = () => {
               />
               <Button type="submit" variant="outline"><Search className="w-4 h-4 mr-1" />Search</Button>
             </form>
-            <Button variant="outline" onClick={() => setShowProductFilters((v) => !v)}><Filter className="w-4 h-4 mr-1" />Filters</Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowAddProductDialog(true)}><Plus className="w-4 h-4 mr-1" />Add Product</Button>
+              <Button variant="outline" onClick={() => setShowProductFilters((v) => !v)}><Filter className="w-4 h-4 mr-1" />Filters</Button>
+            </div>
           </div>
           {showProductFilters && (
             <Card className="mb-6 p-4">
@@ -442,7 +784,7 @@ const AdminDashboard: React.FC = () => {
                           {product.isActive ? <Badge variant="outline" className="text-green-700 border-green-400">Active</Badge> : <Badge variant="outline" className="text-red-700 border-red-400">Inactive</Badge>}
                         </td>
                         <td className="px-4 py-2 flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => console.log('Edit product:', product.id)}><Edit className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => handleEditProduct(product)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="destructive" onClick={() => handleDeleteProduct(product.id)}><Trash className="w-4 h-4" /></Button>
                         </td>
                       </tr>
@@ -508,6 +850,262 @@ const AdminDashboard: React.FC = () => {
                 <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
                 <Button variant="destructive" onClick={confirmDeleteProduct} disabled={deleteProductMutation.isPending}>
                   {deleteProductMutation.isPending ? 'Deleting...' : 'Delete'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Add Product Dialog */}
+          <Dialog open={showAddProductDialog} onOpenChange={setShowAddProductDialog}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Product</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Product Name *</Label>
+                    <Input
+                      id="name"
+                      value={addProductForm.name}
+                      onChange={(e) => handleAddProductFormChange('name', e.target.value)}
+                      placeholder="Enter product name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="brand">Brand</Label>
+                    <Input
+                      id="brand"
+                      value={addProductForm.brand}
+                      onChange={(e) => handleAddProductFormChange('brand', e.target.value)}
+                      placeholder="Enter brand name"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={addProductForm.description}
+                    onChange={(e) => handleAddProductFormChange('description', e.target.value)}
+                    placeholder="Enter product description"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="price">Price *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={addProductForm.price}
+                      onChange={(e) => handleAddProductFormChange('price', e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="salePrice">Sale Price</Label>
+                    <Input
+                      id="salePrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={addProductForm.salePrice}
+                      onChange={(e) => handleAddProductFormChange('salePrice', e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="stockQuantity">Stock Quantity *</Label>
+                    <Input
+                      id="stockQuantity"
+                      type="number"
+                      min="0"
+                      value={addProductForm.stockQuantity}
+                      onChange={(e) => handleAddProductFormChange('stockQuantity', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="category">Category *</Label>
+                  <CategorySelector 
+                    value={addProductForm.category} 
+                    onChange={(value) => handleAddProductFormChange('category', value)}
+                    placeholder="Select a category"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="images">Product Images</Label>
+                  <Input
+                    id="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                  />
+                  {addProductForm.images.length > 0 && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      {addProductForm.images.length} image(s) selected
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isFeatured"
+                      checked={addProductForm.isFeatured}
+                      onCheckedChange={(checked) => handleAddProductFormChange('isFeatured', checked)}
+                    />
+                    <Label htmlFor="isFeatured">Featured Product</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isActive"
+                      checked={addProductForm.isActive}
+                      onCheckedChange={(checked) => handleAddProductFormChange('isActive', checked)}
+                    />
+                    <Label htmlFor="isActive">Active</Label>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setShowAddProductDialog(false);
+                  resetAddProductForm();
+                }}>Cancel</Button>
+                <Button onClick={handleAddProduct} disabled={addProductLoading}>
+                  {addProductLoading ? 'Adding...' : 'Add Product'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Product Dialog */}
+          <Dialog open={showEditProductDialog} onOpenChange={setShowEditProductDialog}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Product</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-name">Product Name *</Label>
+                    <Input
+                      id="edit-name"
+                      value={editProductForm.name}
+                      onChange={(e) => handleEditProductFormChange('name', e.target.value)}
+                      placeholder="Enter product name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-brand">Brand</Label>
+                    <Input
+                      id="edit-brand"
+                      value={editProductForm.brand}
+                      onChange={(e) => handleEditProductFormChange('brand', e.target.value)}
+                      placeholder="Enter brand name"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editProductForm.description}
+                    onChange={(e) => handleEditProductFormChange('description', e.target.value)}
+                    placeholder="Enter product description"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="edit-price">Price *</Label>
+                    <Input
+                      id="edit-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editProductForm.price}
+                      onChange={(e) => handleEditProductFormChange('price', e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-salePrice">Sale Price</Label>
+                    <Input
+                      id="edit-salePrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editProductForm.salePrice}
+                      onChange={(e) => handleEditProductFormChange('salePrice', e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-stockQuantity">Stock Quantity *</Label>
+                    <Input
+                      id="edit-stockQuantity"
+                      type="number"
+                      min="0"
+                      value={editProductForm.stockQuantity}
+                      onChange={(e) => handleEditProductFormChange('stockQuantity', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="edit-category">Category *</Label>
+                  <CategorySelector 
+                    value={editProductForm.category} 
+                    onChange={(value) => handleEditProductFormChange('category', value)}
+                    placeholder="Select a category"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-images">Product Images</Label>
+                  <Input
+                    id="edit-images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleEditImageUpload}
+                  />
+                  {editProductForm.images.length > 0 && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      {editProductForm.images.length} image(s) selected
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-isFeatured"
+                      checked={editProductForm.isFeatured}
+                      onCheckedChange={(checked) => handleEditProductFormChange('isFeatured', checked)}
+                    />
+                    <Label htmlFor="edit-isFeatured">Featured Product</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-isActive"
+                      checked={editProductForm.isActive}
+                      onCheckedChange={(checked) => handleEditProductFormChange('isActive', checked)}
+                    />
+                    <Label htmlFor="edit-isActive">Active</Label>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setShowEditProductDialog(false);
+                  resetEditProductForm();
+                }}>Cancel</Button>
+                <Button onClick={submitEditProduct} disabled={editProductLoading}>
+                  {editProductLoading ? 'Updating...' : 'Update Product'}
                 </Button>
               </DialogFooter>
             </DialogContent>

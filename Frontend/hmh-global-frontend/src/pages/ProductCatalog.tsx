@@ -25,7 +25,22 @@ const ProductCatalog: React.FC = () => {
     brand: searchParams.get('brand') || undefined,
     sortBy: (searchParams.get('sortBy') as any) || 'newest',
     sortOrder: (searchParams.get('sortOrder') as any) || 'desc',
-  })
+  });
+
+  // Sync filters with searchParams when URL changes
+  useEffect(() => {
+    setFilters({
+      category: searchParams.get('category') || undefined,
+      search: searchParams.get('search') || undefined,
+      minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
+      maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
+      brand: searchParams.get('brand') || undefined,
+      sortBy: (searchParams.get('sortBy') as any) || 'newest',
+      sortOrder: (searchParams.get('sortOrder') as any) || 'desc',
+    });
+    // Optionally reset page to 1 if category/search changes
+    setCurrentPage(1);
+  }, [searchParams]);
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const [showFilters, setShowFilters] = useState(false)
@@ -82,6 +97,8 @@ const ProductCatalog: React.FC = () => {
     setSearchTerm('')
     setPriceRange({ min: '', max: '' })
     setCurrentPage(1)
+    // Clear URL parameters
+    setSearchParams({})
   }
 
   const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
@@ -240,14 +257,14 @@ const ProductCatalog: React.FC = () => {
               <span className="text-sm text-gray-600">
                 {pagination ? `${pagination.total} products found` : 'Loading...'}
               </span>
-              <Select value={filters.sortBy} onValueChange={(value: any) => handleFilterChange('sortBy', value)}>
+              <Select value={filters.sortBy} onValueChange={(value: string) => handleFilterChange('sortBy', value)}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="price">Price: Low to High</SelectItem>
-                  <SelectItem value="price">Price: High to Low</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
                   <SelectItem value="rating">Highest Rated</SelectItem>
                   <SelectItem value="name">Name: A-Z</SelectItem>
                 </SelectContent>
@@ -262,17 +279,20 @@ const ProductCatalog: React.FC = () => {
                 {/* Category Filter */}
                 <div>
                   <Label className="text-sm font-medium mb-2 block">Category</Label>
-                  <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+                  <Select value={filters.category?.toString() || 'all'} onValueChange={(value: string) => handleFilterChange('category', value === 'all' ? undefined : value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
-                      {categories.map((category: Category) => (
-                        <SelectItem key={category._id || category.id} value={category._id || category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((category: Category) => {
+                        const categoryId = category._id?.toString() || category.id?.toString();
+                        return categoryId ? (
+                          <SelectItem key={categoryId} value={categoryId}>
+                            {category.name}
+                          </SelectItem>
+                        ) : null;
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
