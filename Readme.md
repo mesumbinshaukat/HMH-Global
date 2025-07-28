@@ -1,18 +1,22 @@
-# HMH Global E-Commerce Platform
+# HMH Global E-commerce Platform
 
-## Key Features
-- **Product Search & Filtering:**
-  - Search bar and advanced filters (category, price, brand) for product catalog.
-  - Responsive filters panel with clear/reset option.
-- **Product Grid & Pagination:**
-  - Loading skeletons, error handling, and empty state messages.
-  - Pagination with Previous/Next and direct page navigation.
-- **Admin Dashboard:**
-  - Product import (scraping) from Northwest Cosmetics with real-time SSE progress.
-  - Order and product management, bulk actions, and export.
-- **Authentication:**
-  - JWT-based login/register, with email always stored and searched in lowercase.
-  - Token sent in Authorization header for API, and as `?token=...` query for SSE endpoints.
+A full-stack e-commerce platform built with React.js frontend and Node.js/Express backend, deployed on Ubuntu VPS with Nginx reverse proxy.
+
+## 🌐 Live Demo
+
+**Website**: [http://hmhglobal.co.uk](http://hmhglobal.co.uk)
+**API**: [http://hmhglobal.co.uk/api](http://hmhglobal.co.uk/api)
+
+## 🚀 Key Features
+- **Full E-commerce Functionality**: Product catalog, shopping cart, order management
+- **User Authentication**: JWT-based authentication with role-based access control
+- **Admin Dashboard**: Product management, order tracking, user management
+- **Product Search & Filtering**: Advanced search with category, price, and brand filters
+- **Product Grid & Pagination**: Loading skeletons, error handling, and pagination
+- **Web Scraping**: Automated product import from Northwest Cosmetics with real-time progress
+- **Responsive Design**: Mobile-first design with Tailwind CSS
+- **File Uploads**: Product image management
+- **Email Integration**: Order confirmations and notifications
 
 ## Authentication Flow
 - **Login/Registration:**

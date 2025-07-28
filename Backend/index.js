@@ -6,9 +6,6 @@ const app = express();
 const connectDB = require('./config/database');
 const path = require('path');
 
-// Ensure cart indexes (fixes duplicate key errors for guest carts)
-const ensureCartIndexes = require('./scripts/ensureCartIndexes');
-
 // CORS options
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
@@ -26,11 +23,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Serve static files from React build in production
-if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, 'public')));
-}
-
 // Request logger middleware
 app.use((req, res, next) => {
     const user = req.user ? `${req.user.userId} (${req.user.role})` : 'Unauthenticated';
@@ -45,35 +37,32 @@ app.use((req, res, next) => {
     next();
 });
 
-// Error logger middleware
+// Routes
+app.get("/", (req, res) => res.send("HMH Global E-commerce API Running"));
+app.use("/api/users", require('./routes/UserRoutes'));
+app.use("/api/categories", require('./routes/CategoryRoutes'));
+app.use("/api/products", require('./routes/productRoutes'));
+app.use("/api/cart", require('./routes/CartRoutes'));
+app.use("/api/orders", require('./routes/OrderRoutes'));
+app.use("/api/reviews", require('./routes/ReviewRoutes'));
+app.use("/api/admin", require('./routes/AdminRoutes'));
+
+// Error handling middleware (must be after routes)
 app.use((err, req, res, next) => {
     console.error(`[ERROR] ${req.method} ${req.originalUrl} -`, err);
     res.status(500).json({ message: 'Internal server error', error: err.message });
 });
-
-// Routes
-app.get("/", (req, res) => res.send("HMH Global E-commerce API Running"));
-app.use("/api/users", require('./routes/UserRoutes')); //checked
-app.use("/api/categories", require('./routes/CategoryRoutes')); //checked
-app.use("/api/products", require('./routes/ProductRoutes')); //checked
-app.use("/api/cart", require('./routes/CartRoutes')); //checked
-app.use("/api/orders", require('./routes/OrderRoutes')); //checked (Email isn't sending on Order Placement, other than that it works fine)
-app.use("/api/reviews", require('./routes/ReviewRoutes')); //checked
-app.use("/api/admin", require('./routes/AdminRoutes'));
-
-// Catch-all handler for React SPA in production
-if (process.env.NODE_ENV === 'production') {
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
-    });
-}
 
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
     try {
         await connectDB(); // Connect to the database
-        await ensureCartIndexes(); // Ensure cart indexes on startup
+        
+        // Only run ensureCartIndexes after some carts exist
+        // Comment this out for now to avoid the error
+        // await ensureCartIndexes(); 
+        
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
         });

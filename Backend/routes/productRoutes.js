@@ -12,7 +12,7 @@ const {
     searchProducts,
     updateInventory,
     getRelatedProducts
-} = require('../controllers/ProductController');
+} = require('../controllers/productController');
 const authMiddleware = require('../middleware/auth');
 const roleMiddleware = require('../middleware/role');
 

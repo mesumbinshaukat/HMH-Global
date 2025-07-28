@@ -28,6 +28,7 @@
     "mongoose": "^8.15.0",
     "multer": "^2.0.0",
     "nodemailer": "^7.0.3",
+    "path-to-regexp": "^0.1.12",
     "puppeteer": "^21.3.8"
   },
   "devDependencies": {

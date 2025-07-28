@@ -11,18 +11,22 @@ const {
 const authMiddleware = require('../middleware/auth');
 const roleMiddleware = require('../middleware/role');
 
-// Customer routes
+// All routes require authentication
 router.use(authMiddleware);
+
+// Admin-specific routes (put these BEFORE parameterized routes)
+router.get('/admin/all', roleMiddleware('admin'), getAllOrdersAdmin);
+router.post('/admin/bulk-status', roleMiddleware('admin'), require('../controllers/OrderController').bulkUpdateOrderStatus);
+router.post('/admin/bulk-delete', roleMiddleware('admin'), require('../controllers/OrderController').bulkDeleteOrders);
+router.get('/admin/export', roleMiddleware('admin'), require('../controllers/OrderController').exportOrders);
+
+// Customer routes
 router.post('/', createOrder);
 router.get('/my-orders', getUserOrders);
 router.get('/:id', getOrderById);
 router.patch('/:id/cancel', cancelOrder);
 
-// Admin routes
+// Admin routes with parameters
 router.patch('/:id/status', roleMiddleware('admin'), updateOrderStatus);
-router.get('/', authMiddleware, roleMiddleware('admin'), getAllOrdersAdmin); // Admin: get all orders with pagination/filtering
-router.post('/bulk-status', authMiddleware, roleMiddleware('admin'), require('../controllers/OrderController').bulkUpdateOrderStatus);
-router.post('/bulk-delete', authMiddleware, roleMiddleware('admin'), require('../controllers/OrderController').bulkDeleteOrders);
-router.get('/export', authMiddleware, roleMiddleware('admin'), require('../controllers/OrderController').exportOrders);
 
 module.exports = router;
