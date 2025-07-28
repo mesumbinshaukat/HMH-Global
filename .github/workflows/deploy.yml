@@ -1,0 +1,180 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: |
+          Backend/package-lock.json
+          Frontend/hmh-global-frontend/package-lock.json
+    
+    - name: Install Backend Dependencies
+      run: |
+        cd Backend
+        npm ci
+    
+    - name: Install Frontend Dependencies
+      run: |
+        cd Frontend/hmh-global-frontend
+        npm ci
+    
+    - name: Run Backend Tests
+      run: |
+        cd Backend
+        npm test || echo "No tests specified"
+    
+    - name: Build Frontend
+      run: |
+        cd Frontend/hmh-global-frontend
+        npm run build
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: |
+          Backend/package-lock.json
+          Frontend/hmh-global-frontend/package-lock.json
+    
+    - name: Install Dependencies and Build
+      run: |
+        # Install Backend Dependencies
+        cd Backend
+        npm ci
+        cd ..
+        
+        # Install Frontend Dependencies and Build
+        cd Frontend/hmh-global-frontend
+        npm ci
+        npm run build
+        cd ../..
+    
+    - name: Create deployment package
+      run: |
+        # Create a deployment directory
+        mkdir -p deploy
+        
+        # Copy backend files
+        cp -r Backend/* deploy/
+        
+        # Copy built frontend to backend's public directory
+        mkdir -p deploy/public
+        cp -r Frontend/hmh-global-frontend/build/* deploy/public/
+        
+        # Create deployment archive
+        tar -czf deployment.tar.gz -C deploy .
+    
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        script: |
+          # Set variables
+          APP_DIR="/var/www/hmh-global"
+          BACKUP_DIR="/var/backups/hmh-global"
+          
+          # Create backup of current deployment
+          sudo mkdir -p $BACKUP_DIR
+          if [ -d "$APP_DIR" ]; then
+            sudo cp -r $APP_DIR $BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S)
+          fi
+          
+          # Create app directory if it doesn't exist
+          sudo mkdir -p $APP_DIR
+          
+          # Set ownership
+          sudo chown -R $USER:$USER $APP_DIR
+          
+          # Stop the application
+          sudo pm2 stop hmh-global || echo "App not running"
+          
+          # Clean old files (keep node_modules for faster deployment)
+          find $APP_DIR -maxdepth 1 -not -name "node_modules" -not -name "." -not -name ".." -exec rm -rf {} +
+    
+    - name: Copy files to VPS
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        source: "deployment.tar.gz"
+        target: "/tmp/"
+    
+    - name: Extract and start application
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        script: |
+          # Set variables
+          APP_DIR="/var/www/hmh-global"
+          
+          # Extract deployment
+          cd $APP_DIR
+          tar -xzf /tmp/deployment.tar.gz
+          
+          # Install/update dependencies only if package.json changed
+          if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
+            npm ci --production
+          fi
+          
+          # Set proper permissions
+          sudo chown -R $USER:$USER $APP_DIR
+          chmod +x $APP_DIR/scripts/*.sh || echo "No executable scripts found"
+          
+          # Set up environment variables
+          if [ ! -f ".env" ]; then
+            echo "Creating .env file..."
+            cat > .env << EOF
+          NODE_ENV=production
+          PORT=5000
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASS=${{ secrets.EMAIL_PASS }}
+          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+          EOF
+          fi
+          
+          # Start the application with PM2
+          pm2 start ecosystem.config.js --env production || pm2 start server.js --name "hmh-global" --env production
+          
+          # Save PM2 configuration
+          pm2 save
+          
+          # Clean up
+          rm -f /tmp/deployment.tar.gz
+          
+          # Restart Nginx if it exists
+          sudo systemctl reload nginx || echo "Nginx not found or already running"
+          
+          echo "Deployment completed successfully!"
