@@ -49,3 +49,8 @@ Thumbs.db
 
 # Uploads directory (contains user-uploaded files)
 Backend/uploads/
+
+# Archive files
+*.zip
+*.rar
+*.tar.gz
