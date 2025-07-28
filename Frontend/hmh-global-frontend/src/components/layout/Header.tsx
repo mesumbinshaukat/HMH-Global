@@ -9,6 +9,7 @@ import { Badge } from '../ui/badge'
 import { useCategories } from '../../hooks/useQuery'
 import { ChevronDown } from 'lucide-react'
 import { Category } from '../../types'
+import logo from '../../logo.jpeg'
 
 const Header: React.FC = () => {
   const navigate = useNavigate()
@@ -61,12 +62,17 @@ const Header: React.FC = () => {
   const cartItemCount = cartData?.data?.items?.length || 0
 
   return (
-    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+    <header className="bg-black shadow-lg border-b border-gray-800 sticky top-0 z-50 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="text-2xl font-bold text-primary">HMH Global</div>
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="relative overflow-hidden rounded-lg">
+              <img src={logo} alt="HMH Global" className="h-12 w-12 object-cover transition-transform duration-300 group-hover:scale-110" />
+            </div>
+            <div className="text-2xl font-black text-white tracking-tight hover:text-red-500 transition-colors duration-300">
+              HMH Global
+            </div>
           </Link>
 
           {/* Search Bar - Desktop */}
@@ -77,12 +83,12 @@ const Header: React.FC = () => {
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10"
+                className="pr-12 bg-gray-900 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500 rounded-full h-12"
               />
               <Button
                 type="submit"
                 size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white rounded-full h-8 w-8 p-0"
               >
                 <Search className="w-4 h-4" />
               </Button>
@@ -90,11 +96,11 @@ const Header: React.FC = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4 relative">
+          <div className="hidden md:flex items-center space-x-6 relative">
             {/* Categories Mega Menu */}
             <div className="relative" onMouseEnter={() => setCategoryMenuOpen(true)} onMouseLeave={() => setCategoryMenuOpen(false)}>
               <button
-                className="flex items-center text-gray-700 hover:text-primary transition-colors font-medium px-3 py-2 focus:outline-none"
+                className="flex items-center text-white hover:text-red-500 transition-colors font-bold px-4 py-3 focus:outline-none uppercase tracking-wide text-sm"
                 aria-haspopup="true"
                 aria-expanded={categoryMenuOpen}
                 type="button"
@@ -103,7 +109,7 @@ const Header: React.FC = () => {
               </button>
               {categoryMenuOpen && (
                 <div
-                  className="absolute left-0 mt-2 w-[800px] bg-white shadow-xl rounded-lg border z-50 p-6 animate-fade-in"
+                  className="absolute left-0 mt-2 w-[800px] bg-gray-900 shadow-2xl rounded-lg border border-gray-700 z-50 p-6 animate-fade-in backdrop-blur-md"
                   tabIndex={-1}
                   onBlur={() => setCategoryMenuOpen(false)}
                   aria-label="All categories mega menu"
@@ -115,9 +121,9 @@ const Header: React.FC = () => {
                       placeholder="Search categories..."
                       value={categorySearch}
                       onChange={e => setCategorySearch(e.target.value)}
-                      className="w-64 mr-4"
+                      className="w-64 mr-4 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500 rounded-lg"
                     />
-                    <span className="text-xs text-gray-500">{filteredCategories.length} categories</span>
+                    <span className="text-xs text-gray-400">{filteredCategories.length} categories</span>
                   </div>
                   <div className="grid grid-cols-4 gap-6 max-h-[400px] overflow-y-auto">
                     {chunkedCategories.map((col, colIdx) => (
@@ -126,7 +132,7 @@ const Header: React.FC = () => {
                           <li key={cat._id || cat.id}>
                             <Link
                               to={`/products?category=${cat._id || cat.id}`}
-                              className="block text-gray-700 hover:text-primary text-sm font-medium truncate"
+                              className="block text-gray-300 hover:text-red-500 text-sm font-semibold truncate transition-colors duration-200 py-1"
                               onClick={() => setCategoryMenuOpen(false)}
                             >
                               {cat.name}
@@ -140,7 +146,7 @@ const Header: React.FC = () => {
               )}
             </div>
             {/* Products Link */}
-            <Link to="/products" className="text-gray-700 hover:text-primary transition-colors" onClick={(e) => {
+            <Link to="/products" className="text-white hover:text-red-500 transition-colors font-bold uppercase tracking-wide text-sm px-4 py-3" onClick={(e) => {
               e.preventDefault();
               navigate('/products');
             }}>
@@ -149,38 +155,38 @@ const Header: React.FC = () => {
             
             {isAuthenticated ? (
               <>
-                <Link to="/orders" className="text-gray-700 hover:text-primary transition-colors">
+                <Link to="/orders" className="text-white hover:text-red-500 transition-colors font-bold uppercase tracking-wide text-sm px-4 py-3">
                   Orders
                 </Link>
-                <Link to="/profile" className="text-gray-700 hover:text-primary transition-colors">
+                <Link to="/profile" className="text-white hover:text-red-500 transition-colors font-bold uppercase tracking-wide text-sm px-4 py-3">
                   Profile
                 </Link>
                 {user?.role === 'admin' && (
-                  <Link to="/admin" className="text-gray-700 hover:text-primary transition-colors">
+                  <Link to="/admin" className="text-white hover:text-red-500 transition-colors font-bold uppercase tracking-wide text-sm px-4 py-3">
                     Admin
                   </Link>
                 )}
-                <Button variant="ghost" onClick={handleLogout}>
+                <Button variant="ghost" onClick={handleLogout} className="text-white hover:text-red-500 hover:bg-gray-800 font-bold uppercase tracking-wide text-sm">
                   Logout
                 </Button>
               </>
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost">Login</Button>
+                  <Button variant="ghost" className="text-white hover:text-red-500 hover:bg-gray-800 font-bold uppercase tracking-wide text-sm">Login</Button>
                 </Link>
                 <Link to="/register">
-                  <Button>Register</Button>
+                  <Button className="bg-red-600 hover:bg-red-700 text-white font-bold uppercase tracking-wide text-sm px-6 py-3 rounded-full">Register</Button>
                 </Link>
               </>
             )}
 
             {/* Cart */}
-            <Link to="/cart" className="relative">
-              <Button variant="ghost" size="icon">
-                <ShoppingCart className="w-5 h-5" />
+            <Link to="/cart" className="relative group">
+              <Button variant="ghost" size="icon" className="text-white hover:text-red-500 hover:bg-gray-800 w-12 h-12 rounded-full">
+                <ShoppingCart className="w-6 h-6 transition-transform duration-300 group-hover:scale-110" />
                 {cartItemCount > 0 && (
-                  <Badge className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center p-0 text-xs">
+                  <Badge className="absolute -top-1 -right-1 w-6 h-6 flex items-center justify-center p-0 text-xs bg-red-600 text-white border-2 border-black rounded-full font-bold">
                     {cartItemCount}
                   </Badge>
                 )}
@@ -190,15 +196,15 @@ const Header: React.FC = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
-            <Button variant="ghost" size="icon" onClick={toggleMobileMenu}>
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <Button variant="ghost" size="icon" onClick={toggleMobileMenu} className="text-white hover:text-red-500 hover:bg-gray-800 w-12 h-12">
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
           </div>
         </div>
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t">
+          <div className="md:hidden py-4 border-t border-gray-700 bg-black">
             {/* Mobile Search */}
             <form onSubmit={handleSearch} className="mb-4 relative">
               <Input
@@ -206,12 +212,12 @@ const Header: React.FC = () => {
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10"
+                className="pr-12 bg-gray-900 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500 rounded-full h-12"
               />
               <Button
                 type="submit"
                 size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white rounded-full h-8 w-8 p-0"
               >
                 <Search className="w-4 h-4" />
               </Button>
