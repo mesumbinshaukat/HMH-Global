@@ -84,6 +84,7 @@
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
   }
   
   /* Custom scrollbar */
@@ -102,12 +103,19 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400;
   }
+
+  /* Smooth transitions for all interactive elements */
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
 }
 
 @layer components {
   /* Premium Button Styles */
   .btn-premium {
-    @apply relative overflow-hidden bg-gradient-to-r from-hmh-gold to-hmh-gold-light text-hmh-black font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl;
+    @apply relative overflow-hidden bg-gradient-to-r from-hmh-gold-400 to-hmh-gold-200 text-hmh-black-900 font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl;
   }
   
   .btn-premium::before {
@@ -118,20 +126,54 @@
   .btn-premium:hover::before {
     @apply opacity-100;
   }
+
+  /* Nike-style Button */
+  .btn-nike {
+    @apply relative overflow-hidden bg-black text-white font-bold py-4 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:bg-gray-900;
+  }
+
+  .btn-nike::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 transition-opacity duration-300;
+  }
+
+  .btn-nike:hover::before {
+    @apply opacity-100;
+  }
   
   /* Premium Card Styles */
   .card-premium {
     @apply bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100;
   }
+
+  /* Nike-style Card */
+  .card-nike {
+    @apply bg-white rounded-none shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border-0;
+  }
+
+  /* Adidas-style Card */
+  .card-adidas {
+    @apply bg-white rounded-3xl shadow-xl hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-3 hover:rotate-1 border-0;
+  }
   
   /* Gradient Text */
   .text-gradient {
-    @apply bg-gradient-to-r from-hmh-gold to-hmh-gold-light bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-hmh-gold-500 to-hmh-gold-300 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-nike {
+    @apply bg-gradient-to-r from-black via-gray-800 to-black bg-clip-text text-transparent;
   }
   
   /* Animated Background */
   .bg-animated {
     background: linear-gradient(-45deg, #f4f1eb, #e8e0d0, #d4c4a8, #f4f1eb);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+
+  .bg-animated-nike {
+    background: linear-gradient(-45deg, #000000, #1a1a1a, #333333, #000000);
     background-size: 400% 400%;
     animation: gradientShift 15s ease infinite;
   }
@@ -151,6 +193,16 @@
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
   }
+
+  /* Nike-style Float */
+  .float-nike {
+    animation: floatNike 4s ease-in-out infinite;
+  }
+  
+  @keyframes floatNike {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(1deg); }
+  }
   
   /* Pulse Animation */
   .pulse-gold {
@@ -160,6 +212,16 @@
   @keyframes pulseGold {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.8; }
+  }
+
+  /* Nike-style Pulse */
+  .pulse-nike {
+    animation: pulseNike 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulseNike {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
   }
   
   /* Slide In Animation */
@@ -177,6 +239,22 @@
       transform: translateY(0);
     }
   }
+
+  /* Nike-style Slide In */
+  .slide-in-nike {
+    animation: slideInNike 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  @keyframes slideInNike {
+    from {
+      opacity: 0;
+      transform: translateY(50px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
   
   /* Glow Effect */
   .glow {
@@ -185,5 +263,200 @@
   
   .glow:hover {
     box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+  }
+
+  .glow-nike {
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .glow-nike:hover {
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Parallax Effect */
+  .parallax {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* Nike-style Text Reveal */
+  .text-reveal {
+    overflow: hidden;
+    position: relative;
+  }
+
+  .text-reveal::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+    transform: translateX(-100%);
+    animation: textReveal 2s ease-in-out infinite;
+  }
+
+  @keyframes textReveal {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Product Card Hover Effects */
+  .product-card {
+    @apply relative overflow-hidden bg-white rounded-2xl shadow-lg transition-all duration-500 transform hover:-translate-y-4 hover:shadow-2xl;
+  }
+
+  .product-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-hmh-gold-500/10 to-transparent opacity-0 transition-opacity duration-500;
+  }
+
+  .product-card:hover::before {
+    @apply opacity-100;
+  }
+
+  .product-card:hover .product-image {
+    @apply scale-110;
+  }
+
+  .product-image {
+    @apply transition-transform duration-700 ease-out;
+  }
+
+  /* Nike-style Product Card */
+  .product-card-nike {
+    @apply relative overflow-hidden bg-white shadow-lg transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl;
+  }
+
+  .product-card-nike::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-black/5 to-transparent opacity-0 transition-opacity duration-300;
+  }
+
+  .product-card-nike:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Hero Section Enhancements */
+  .hero-gradient {
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 25%, #333333 50%, #1a1a1a 75%, #000000 100%);
+    background-size: 400% 400%;
+    animation: heroGradient 8s ease infinite;
+  }
+
+  @keyframes heroGradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Interactive Navigation */
+  .nav-link {
+    @apply relative text-hmh-black-900 hover:text-hmh-gold-600 transition-colors duration-300 font-semibold uppercase tracking-wide;
+  }
+
+  .nav-link::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-hmh-gold-500 transition-all duration-300;
+  }
+
+  .nav-link:hover::after {
+    @apply w-full;
+  }
+
+  /* Nike-style Navigation */
+  .nav-link-nike {
+    @apply relative text-black hover:text-gray-600 transition-colors duration-300 font-bold uppercase tracking-wider;
+  }
+
+  .nav-link-nike::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-1 bg-black transition-all duration-300;
+  }
+
+  .nav-link-nike:hover::after {
+    @apply w-full;
+  }
+
+  /* Search Bar Enhancements */
+  .search-bar {
+    @apply relative bg-white rounded-full shadow-lg transition-all duration-300 hover:shadow-xl focus-within:shadow-2xl;
+  }
+
+  .search-bar::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-hmh-gold-500/10 to-transparent rounded-full opacity-0 transition-opacity duration-300;
+  }
+
+  .search-bar:focus-within::before {
+    @apply opacity-100;
+  }
+
+  /* Loading Animations */
+  .loading-shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Scroll-triggered animations */
+  .fade-in-up {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease-out;
+  }
+
+  .fade-in-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Nike-style grid layout */
+  .grid-nike {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  /* Adidas-style grid layout */
+  .grid-adidas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* Responsive typography */
+  .text-responsive {
+    font-size: clamp(1rem, 4vw, 3rem);
+    line-height: 1.2;
+  }
+
+  .text-responsive-lg {
+    font-size: clamp(2rem, 6vw, 5rem);
+    line-height: 1.1;
+  }
+
+  /* Interactive elements */
+  .interactive-element {
+    @apply cursor-pointer transition-all duration-300 transform hover:scale-105 active:scale-95;
+  }
+
+  /* Premium shadows */
+  .shadow-premium {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  .shadow-premium-lg {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  .shadow-premium-xl {
+    box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.3);
   }
 }

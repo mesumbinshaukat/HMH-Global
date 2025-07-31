@@ -160,14 +160,51 @@ async function main() {
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
         
         console.log('[Scraper] Fetching sitemap from Northwest Cosmetics...');
-        await page.goto('https://northwest-cosmetics.com/sitemap.asp', { 
-            waitUntil: 'networkidle2', 
-            timeout: 30000 
-        });
-
-        // Extract sitemap content
-        const sitemapContent = await page.content();
-        console.log(`[Scraper] Sitemap loaded, length: ${sitemapContent.length}`);
+        
+        // Try multiple approaches to get the sitemap
+        let sitemapContent = '';
+        let sitemapSuccess = false;
+        
+        // First try the direct sitemap approach
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                console.log(`[Scraper] Sitemap attempt ${attempt}/3...`);
+                await page.goto('https://northwest-cosmetics.com/sitemap.asp', { 
+                    waitUntil: 'domcontentloaded', 
+                    timeout: 20000 
+                });
+                await page.waitForTimeout(3000);
+                sitemapContent = await page.content();
+                
+                if (sitemapContent && sitemapContent.length > 1000) {
+                    sitemapSuccess = true;
+                    console.log(`[Scraper] Sitemap loaded successfully, length: ${sitemapContent.length}`);
+                    break;
+                }
+            } catch (error) {
+                console.log(`[Scraper] Sitemap attempt ${attempt} failed: ${error.message}`);
+                if (attempt < 3) {
+                    await page.waitForTimeout(5000 * attempt);
+                }
+            }
+        }
+        
+        // If sitemap fails, try homepage and find links
+        if (!sitemapSuccess) {
+            console.log('[Scraper] Sitemap failed, trying homepage approach...');
+            try {
+                await page.goto('https://northwest-cosmetics.com/', { 
+                    waitUntil: 'domcontentloaded', 
+                    timeout: 20000 
+                });
+                await page.waitForTimeout(3000);
+                sitemapContent = await page.content();
+                sitemapSuccess = true;
+                console.log(`[Scraper] Homepage loaded as fallback, length: ${sitemapContent.length}`);
+            } catch (error) {
+                throw new Error(`Failed to load both sitemap and homepage: ${error.message}`);
+            }
+        }
         
         // Extract category links from sitemap
         const categoryLinks = extractCategoryLinks(sitemapContent);
@@ -184,12 +221,36 @@ async function main() {
         
         for (const categoryUrl of categoryLinks) {
             try {
-                await page.goto(categoryUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-                await page.waitForTimeout(1000);
+                // Use shorter timeout and retry logic
+                let attempts = 0;
+                let success = false;
+                let categoryContent = '';
                 
-                const categoryContent = await page.content();
-                const productLinks = extractProductLinks(categoryContent);
-                totalProductsToScrape += productLinks.length;
+                while (attempts < 3 && !success) {
+                    try {
+                        await page.goto(categoryUrl, { 
+                            waitUntil: 'domcontentloaded', 
+                            timeout: 15000 
+                        });
+                        await page.waitForTimeout(2000);
+                        categoryContent = await page.content();
+                        success = true;
+                    } catch (retryError) {
+                        attempts++;
+                        console.log(`[RETRY] Category ${categoryUrl} attempt ${attempts}/3: ${retryError.message}`);
+                        if (attempts < 3) {
+                            await page.waitForTimeout(3000); // Wait before retry
+                        }
+                    }
+                }
+                
+                if (success) {
+                    const productLinks = extractProductLinks(categoryContent);
+                    totalProductsToScrape += productLinks.length;
+                    console.log(`[COUNT] ${categoryUrl}: ${productLinks.length} products`);
+                } else {
+                    console.error(`[SKIP] Could not load category after 3 attempts: ${categoryUrl}`);
+                }
                 
             } catch (error) {
                 console.error(`[Scraper] Error counting products in category ${categoryUrl}:`, error.message);
@@ -221,12 +282,35 @@ async function main() {
                 
                 console.log(`[Scraper] Processing category: ${cleanName} (${categoryUrl})`);
                 
-                // Navigate to category page
-                await page.goto(categoryUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-                await page.waitForTimeout(2000);
+                // Navigate to category page with retry logic
+                let attempts = 0;
+                let success = false;
+                let categoryContent = '';
+                
+                while (attempts < 3 && !success) {
+                    try {
+                        await page.goto(categoryUrl, { 
+                            waitUntil: 'domcontentloaded', 
+                            timeout: 15000 
+                        });
+                        await page.waitForTimeout(2000);
+                        categoryContent = await page.content();
+                        success = true;
+                    } catch (retryError) {
+                        attempts++;
+                        console.log(`[RETRY] Category processing ${categoryUrl} attempt ${attempts}/3: ${retryError.message}`);
+                        if (attempts < 3) {
+                            await page.waitForTimeout(3000);
+                        }
+                    }
+                }
+                
+                if (!success) {
+                    console.error(`[SKIP] Could not load category for processing: ${categoryUrl}`);
+                    continue;
+                }
                 
                 // Extract product links from category page
-                const categoryContent = await page.content();
                 const productLinks = extractProductLinks(categoryContent);
                 
                 console.log(`[Scraper] Found ${productLinks.length} products in category: ${cleanName}`);
