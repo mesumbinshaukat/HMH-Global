@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { productService } from '../services/products'
 import { categoryService } from '../services/categories'
+import { cartService } from '../services/cart'
 import { Product, Category, ProductFilters } from '../types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -12,6 +13,8 @@ import { Badge } from '../components/ui/badge'
 import { Label } from '../components/ui/label'
 import { ChevronDownIcon, FilterIcon, SearchIcon, Grid3X3, List, Star, Sparkles, ArrowRight, Heart, Eye, ShoppingCart, Zap, Shield, Truck } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuthStore, useCartStore } from '../store'
+import { toast } from 'sonner'
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 
@@ -105,8 +108,40 @@ const ProductCatalog: React.FC = () => {
     }).format(price)
   }
 
+  // Auth and cart state
+  const { isAuthenticated } = useAuthStore()
+  const { setCart } = useCartStore()
+  const queryClient = useQueryClient()
+
+  // Add to cart mutation
+  const addToCartMutation = useMutation({
+    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
+      cartService.addToCart(productId, quantity),
+    onSuccess: (response) => {
+      setCart(response.data || null)
+      toast.success('Product added to cart successfully!')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to add product to cart')
+    },
+  })
+
+  const handleAddToCart = (productId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault() // Prevent navigation when clicking add to cart
+      e.stopPropagation()
+    }
+    
+    if (!isAuthenticated) {
+      toast.error('Please login to add items to cart')
+      return
+    }
+    
+    addToCartMutation.mutate({ productId, quantity: 1 })
+  }
+
   const ProductCard: React.FC<{ product: Product; viewMode: 'grid' | 'list' }> = ({ product, viewMode }) => {
-    const isHovered = hoveredProduct === product._id || hoveredProduct === product.id
+    const isHovered = hoveredProduct === product._id || hoveredProduct.id
 
     if (viewMode === 'list') {
       return (
@@ -206,9 +241,14 @@ const ProductCatalog: React.FC = () => {
                       <Heart className="w-4 h-4 mr-1" />
                       Wishlist
                     </Button>
-                    <Button size="sm" className="bg-gradient-to-r from-hmh-gold-500 to-hmh-gold-600 hover:from-hmh-gold-600 hover:to-hmh-gold-700 text-hmh-black-900">
+                    <Button 
+                      size="sm" 
+                      onClick={(e) => handleAddToCart(product._id || product.id, e)}
+                      disabled={product.stockQuantity === 0 || addToCartMutation.isPending}
+                      className="bg-gradient-to-r from-hmh-gold-500 to-hmh-gold-600 hover:from-hmh-gold-600 hover:to-hmh-gold-700 text-hmh-black-900"
+                    >
                       <ShoppingCart className="w-4 h-4 mr-1" />
-                      Add to Cart
+                      {addToCartMutation.isPending ? 'Adding...' : product.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
                     </Button>
                   </div>
                 </div>
@@ -267,9 +307,14 @@ const ProductCatalog: React.FC = () => {
 
             {/* Quick add to cart button */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
-              <Button size="sm" className="bg-gradient-to-r from-hmh-gold-500 to-hmh-gold-600 hover:from-hmh-gold-600 hover:to-hmh-gold-700 text-hmh-black-900 shadow-premium">
+              <Button 
+                size="sm" 
+                onClick={(e) => handleAddToCart(product._id || product.id, e)}
+                disabled={product.stockQuantity === 0 || addToCartMutation.isPending}
+                className="bg-gradient-to-r from-hmh-gold-500 to-hmh-gold-600 hover:from-hmh-gold-600 hover:to-hmh-gold-700 text-hmh-black-900 shadow-premium"
+              >
                 <ShoppingCart className="w-4 h-4 mr-1" />
-                Quick Add
+                {addToCartMutation.isPending ? 'Adding...' : product.stockQuantity === 0 ? 'Out of Stock' : 'Quick Add'}
               </Button>
             </div>
           </div>
