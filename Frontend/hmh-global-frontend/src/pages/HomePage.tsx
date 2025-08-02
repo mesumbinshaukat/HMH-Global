@@ -189,7 +189,7 @@ const HomePage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {categoryList.slice(0, 8).map((category: Category, index: number) => (
                 <Link key={category._id || category.id} to={`/products?category=${category._id || category.id}`}>
-                  <Card className="product-card group overflow-hidden opacity-100 visible" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <Card className="product-card group overflow-hidden fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
                     <CardContent className="p-0">
                       <div className="relative h-48 bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 flex items-center justify-center overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-hmh-gold-400/20 to-hmh-gold-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -262,14 +262,21 @@ const HomePage: React.FC = () => {
                             <img 
                               src={`https://hmhglobal.co.uk${product.images[0]}`}
                               alt={product.name}
-                              className="product-image w-full h-full object-cover"
+                              className="product-image w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
                             />
-                          ) : (
-                            <div className="text-center">
-                              <Sparkles className="w-12 h-12 text-hmh-gold-500 mx-auto mb-2" />
-                              <span className="text-hmh-black-600 text-sm">Product Image</span>
+                          ) : null}
+                          <div className="text-center w-full h-full flex flex-col items-center justify-center" style={{ display: product.images?.[0] ? 'none' : 'flex' }}>
+                            <div className="w-16 h-16 bg-gradient-to-br from-hmh-gold-400 to-hmh-gold-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-premium">
+                              <Sparkles className="w-8 h-8 text-hmh-black-900" />
                             </div>
-                          )}
+                            <span className="text-hmh-black-600 text-sm font-bold">No Image Available</span>
+                          </div>
                         </div>
                         {product.salePrice && (
                           <Badge className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-premium animate-pulse">
