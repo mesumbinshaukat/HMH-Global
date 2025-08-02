@@ -189,7 +189,7 @@ const HomePage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {categoryList.slice(0, 8).map((category: Category, index: number) => (
                 <Link key={category._id || category.id} to={`/products?category=${category._id || category.id}`}>
-                  <Card className="product-card group overflow-hidden fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <Card className="product-card group overflow-hidden opacity-100 visible" style={{ animationDelay: `${index * 0.1}s` }}>
                     <CardContent className="p-0">
                       <div className="relative h-48 bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 flex items-center justify-center overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-hmh-gold-400/20 to-hmh-gold-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -260,7 +260,7 @@ const HomePage: React.FC = () => {
                         <div className="h-64 bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 flex items-center justify-center overflow-hidden">
                           {product.images?.[0] ? (
                             <img 
-                              src={`http://localhost:5000${product.images[0]}`} 
+                              src={`https://hmhglobal.co.uk${product.images[0]}`}
                               alt={product.name}
                               className="product-image w-full h-full object-cover"
                             />

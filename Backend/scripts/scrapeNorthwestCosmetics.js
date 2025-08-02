@@ -1,16 +1,17 @@
-// Scraper for northwest-cosmetics.com (excluding fragrances)
-// Robust version: includes retries, validation, logging, and MongoDB optimizations
-// Usage: node scrapeNorthwestCosmetics.js
-// Maintainer: HMH Global Dev Team
+// Enhanced Northwest Cosmetics Scraper v2.0
+// Professional-grade scraper with Excel integration and advanced features
+// Usage: node scrapeNorthwestCosmetics.js [--test] [--limit=10]
+// Author: HMH Global Development Team
 //
-// Features:
-// - Robust product detail extraction
-// - Retries for page loads, image downloads, and DB saves
-// - Comprehensive logging and error handling
-// - Data validation and duplicate detection
-// - MongoDB indexes for fast search
-//
-// Do not edit unless you know what you are doing!
+// NEW FEATURES v2.0:
+// - Excel price integration with +50p markup
+// - Organized image folders per product
+// - Enhanced sitemap parsing
+// - Professional retry mechanisms
+// - Comprehensive error handling
+// - Real-time progress tracking
+// - Image update capabilities
+// - Category-specific exclusions
 
 const puppeteer = require('puppeteer');
 const mongoose = require('mongoose');
@@ -18,9 +19,10 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const ExcelJS = require('exceljs');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(__dirname, '../.env.production') });
 const EventEmitter = require('events');
 const scraperEmitter = new EventEmitter();
 

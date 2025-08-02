@@ -23,8 +23,8 @@ const ProductCatalog: React.FC = () => {
     minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
     maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
     brand: searchParams.get('brand') || undefined,
-    sortBy: (searchParams.get('sortBy') as any) || 'newest',
-    sortOrder: (searchParams.get('sortOrder') as any) || 'desc',
+    sortBy: searchParams.get('sortBy') as any || undefined,
+    sortOrder: searchParams.get('sortOrder') as any || undefined,
   });
 
   // Sync filters with searchParams when URL changes
@@ -35,8 +35,8 @@ const ProductCatalog: React.FC = () => {
       minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
       maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
       brand: searchParams.get('brand') || undefined,
-      sortBy: (searchParams.get('sortBy') as any) || 'newest',
-      sortOrder: (searchParams.get('sortOrder') as any) || 'desc',
+      sortBy: searchParams.get('sortBy') as any || undefined,
+      sortOrder: searchParams.get('sortOrder') as any || undefined,
     });
     // Optionally reset page to 1 if category/search changes
     setCurrentPage(1);
@@ -120,7 +120,7 @@ const ProductCatalog: React.FC = () => {
                 <div className="w-full h-full bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 flex items-center justify-center overflow-hidden">
                   {product.images?.[0] ? (
                     <img 
-                      src={`http://localhost:5000${product.images[0]}`} 
+                      src={`https://hmhglobal.co.uk${product.images[0]}`}
                       alt={product.name}
                       className="product-image w-full h-full object-cover"
                     />
@@ -226,7 +226,7 @@ const ProductCatalog: React.FC = () => {
             <div className="h-64 bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 flex items-center justify-center overflow-hidden">
               {product.images?.[0] ? (
                 <img 
-                  src={`http://localhost:5000${product.images[0]}`} 
+                  src={`https://hmhglobal.co.uk${product.images[0]}`}
                   alt={product.name}
                   className="product-image w-full h-full object-cover"
                 />
