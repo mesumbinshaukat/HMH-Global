@@ -132,7 +132,7 @@ const Header: React.FC = () => {
             {/* Enhanced Search Bar - Desktop */}
             <div className="hidden lg:flex flex-1 max-w-xl mx-8">
               <form onSubmit={handleSearch} className="w-full relative group">
-                <div className={`search-bar ${searchFocused ? 'ring-2 ring-hmh-gold-500' : ''}`}>
+                <div className={`relative bg-white rounded-full shadow-lg hover:shadow-xl focus-within:shadow-2xl transition-all duration-300 ${searchFocused ? 'ring-2 ring-hmh-gold-500' : ''}`}>
                   <Input
                     type="text"
                     placeholder="Search for premium products..."
@@ -140,7 +140,7 @@ const Header: React.FC = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setSearchFocused(true)}
                     onBlur={() => setSearchFocused(false)}
-                    className="pr-12 bg-transparent border-0 text-hmh-black-900 placeholder-gray-500 focus:ring-0 focus:border-0 rounded-full h-12 transition-all duration-300"
+                    className="pr-12 bg-transparent border-0 text-hmh-black-900 placeholder-gray-500 focus:ring-0 focus:border-0 rounded-full h-12 w-full transition-all duration-300 relative z-10"
                   />
                   <Button
                     type="submit"
@@ -292,13 +292,13 @@ const Header: React.FC = () => {
           <div className="lg:hidden py-6 border-t border-gray-100 bg-white/95 backdrop-blur-md animate-slide-down">
             {/* Enhanced Mobile Search */}
             <form onSubmit={handleSearch} className="mb-6 relative px-4">
-              <div className="search-bar">
+              <div className="relative bg-white rounded-full shadow-lg hover:shadow-xl focus-within:shadow-2xl transition-all duration-300">
                 <Input
                   type="text"
                   placeholder="Search for premium products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-12 bg-transparent border-0 text-hmh-black-900 placeholder-gray-500 focus:ring-0 focus:border-0 rounded-full h-12"
+                  className="pr-12 bg-transparent border-0 text-hmh-black-900 placeholder-gray-500 focus:ring-0 focus:border-0 rounded-full h-12 w-full relative z-10"
                 />
                 <Button
                   type="submit"

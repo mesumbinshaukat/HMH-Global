@@ -117,7 +117,7 @@ const ProductCatalog: React.FC = () => {
                 <div className="w-full h-full bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 flex items-center justify-center overflow-hidden">
                   {product.images?.[0] ? (
                     <img 
-                      src={`https://hmhglobal.co.uk${product.images[0]}`}
+                      src={`${process.env.REACT_APP_API_URL}${product.images[0]}`}
                       alt={product.name}
                       className="product-image w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
@@ -230,7 +230,7 @@ const ProductCatalog: React.FC = () => {
             <div className="h-64 bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 flex items-center justify-center overflow-hidden">
               {product.images?.[0] ? (
                 <img 
-                  src={`https://hmhglobal.co.uk${product.images[0]}`}
+                  src={`${process.env.REACT_APP_API_URL}${product.images[0]}`}
                   alt={product.name}
                   className="product-image w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
