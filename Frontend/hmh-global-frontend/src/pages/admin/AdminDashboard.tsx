@@ -100,7 +100,7 @@ const AdminDashboard: React.FC = () => {
     setProgressError(null);
     // Pass JWT token as query parameter for SSE authentication
     const token = localStorage.getItem('token');
-    const sseUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/scrape-progress${token ? `?token=${token}` : ''}`;
+    const sseUrl = `${process.env.REACT_APP_API_URL}/api/admin/scrape-progress${token ? `?token=${token}` : ''}`;
     const eventSource = new EventSource(sseUrl);
     eventSource.addEventListener('start', (e: any) => {
       setProgress({ ...JSON.parse(e.data), current: 0, scraped: 0, errors: 0 });
@@ -774,7 +774,7 @@ const AdminDashboard: React.FC = () => {
                   ) : (
                     products.map((product: Product) => (
                       <tr key={product.id} className="border-b">
-                        <td className="px-4 py-2"><img src={product.images[0] ? `http://localhost:5000${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
+                        <td className="px-4 py-2"><img src={product.images[0] ? `${process.env.REACT_APP_API_URL}${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
                         <td className="px-4 py-2 font-medium">{product.name}</td>
                         <td className="px-4 py-2">{product.category?.name || '-'}</td>
                         <td className="px-4 py-2">{product.brand || '-'}</td>
@@ -827,7 +827,7 @@ const AdminDashboard: React.FC = () => {
                   <tbody>
                     {importedProducts.map((product: Product) => (
                       <tr key={product.id} className="border-b">
-                        <td className="px-4 py-2"><img src={product.images[0] ? `http://localhost:5000${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
+                        <td className="px-4 py-2"><img src={product.images[0] ? `${process.env.REACT_APP_API_URL}${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
                         <td className="px-4 py-2 font-medium">{product.name}</td>
                         <td className="px-4 py-2">{product.category?.name || '-'}</td>
                         <td className="px-4 py-2">${product.salePrice ? <span className="text-red-600">{product.salePrice}</span> : product.price}</td>

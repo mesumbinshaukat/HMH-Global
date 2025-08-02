@@ -231,7 +231,7 @@ const ProductDetail: React.FC = () => {
               <div className="aspect-square bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 rounded-2xl overflow-hidden">
                 {product.images?.[selectedImage] ? (
                   <img
-                    src={`http://localhost:5000${product.images[selectedImage]}`}
+src={`${process.env.REACT_APP_API_URL}${product.images[selectedImage]}`}
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
@@ -274,7 +274,7 @@ const ProductDetail: React.FC = () => {
                     }`}
                   >
                     <img
-                      src={`http://localhost:5000${image}`}
+src={`${process.env.REACT_APP_API_URL}${image}`}
                       alt={`${product.name} ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
