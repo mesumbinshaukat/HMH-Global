@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
-    name: 'hmh-global',
-    script: 'Backend/index.js',
+    name: 'hmh-api',
+    script: 'index.js',
     env: {
       NODE_ENV: 'development'
     },

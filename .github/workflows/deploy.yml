@@ -3,8 +3,16 @@ name: Deploy to VPS
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
 
 jobs:
   test:
@@ -87,7 +95,31 @@ jobs:
         # Create deployment archive
         tar -czf deployment.tar.gz -C deploy .
     
-    - name: Deploy to VPS
+    - name: Pre-deployment Safety Check
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        script: |
+          # Check if website is currently accessible
+          echo "Checking current website accessibility..."
+          if curl -f -s "https://hmhglobal.co.uk" > /dev/null; then
+            echo "✅ Website is currently accessible"
+          else
+            echo "⚠️ Website is not accessible - proceeding with caution"
+          fi
+          
+          # Check PM2 status
+          echo "Current PM2 status:"
+          pm2 status || echo "PM2 not running or no processes"
+          
+          # Check disk space
+          echo "Checking disk space..."
+          df -h /var/www/
+    
+    - name: Create Safe Backup
       uses: appleboy/ssh-action@v0.1.5
       with:
         host: ${{ secrets.VPS_HOST }}
@@ -98,24 +130,27 @@ jobs:
           # Set variables
           APP_DIR="/var/www/hmh-global"
           BACKUP_DIR="/var/backups/hmh-global"
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           
-          # Create backup of current deployment
+          echo "Creating backup at $TIMESTAMP..."
+          
+          # Create backup directory
           sudo mkdir -p $BACKUP_DIR
+          
+          # Create comprehensive backup
           if [ -d "$APP_DIR" ]; then
-            sudo cp -r $APP_DIR $BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S)
+            sudo tar -czf $BACKUP_DIR/full-backup-$TIMESTAMP.tar.gz -C /var/www hmh-global
+            echo "✅ Full backup created: $BACKUP_DIR/full-backup-$TIMESTAMP.tar.gz"
+          else
+            echo "⚠️ App directory does not exist, creating it..."
+            sudo mkdir -p $APP_DIR
           fi
           
-          # Create app directory if it doesn't exist
-          sudo mkdir -p $APP_DIR
+          # Clean old backups (keep last 5)
+          cd $BACKUP_DIR && sudo ls -t full-backup-*.tar.gz | tail -n +6 | sudo xargs rm -f
           
-          # Set ownership
+          # Set proper ownership
           sudo chown -R $USER:$USER $APP_DIR
-          
-          # Stop the application
-          sudo pm2 stop hmh-global || echo "App not running"
-          
-          # Clean old files (keep node_modules for faster deployment)
-          find $APP_DIR -maxdepth 1 -not -name "node_modules" -not -name "." -not -name ".." -exec rm -rf {} +
     
     - name: Copy files to VPS
       uses: appleboy/scp-action@v0.1.4
@@ -127,7 +162,7 @@ jobs:
         source: "deployment.tar.gz"
         target: "/tmp/"
     
-    - name: Extract and start application
+    - name: Deploy Application (Graceful)
       uses: appleboy/ssh-action@v0.1.5
       with:
         host: ${{ secrets.VPS_HOST }}
@@ -135,46 +170,141 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         port: ${{ secrets.VPS_PORT || 22 }}
         script: |
+          set -e  # Exit on any error
+          
           # Set variables
           APP_DIR="/var/www/hmh-global"
+          TEMP_DIR="/tmp/hmh-deploy-$(date +%s)"
           
-          # Extract deployment
-          cd $APP_DIR
+          echo "🚀 Starting graceful deployment..."
+          
+          # Create temporary directory for new deployment
+          mkdir -p $TEMP_DIR
+          cd $TEMP_DIR
+          
+          # Extract new deployment
           tar -xzf /tmp/deployment.tar.gz
           
-          # Install/update dependencies only if package.json changed
-          if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
-            npm ci --production
+          # Preserve existing .env and uploads if they exist
+          if [ -f $APP_DIR/.env ]; then
+            cp $APP_DIR/.env $TEMP_DIR/.env
+            echo "📄 Preserved existing .env"
           fi
           
-          # Set proper permissions
-          sudo chown -R $USER:$USER $APP_DIR
-          chmod +x $APP_DIR/scripts/*.sh || echo "No executable scripts found"
+          if [ -d $APP_DIR/uploads ]; then
+            cp -r $APP_DIR/uploads $TEMP_DIR/uploads
+            echo "📁 Preserved uploads directory"
+          fi
           
-          # Set up environment variables
-          if [ ! -f ".env" ]; then
-            echo "Creating .env file..."
-            cat > .env << EOF
+          # Install dependencies in temp directory
+          npm ci --production --silent
+          
+          echo "⏸️ Gracefully stopping current application..."
+          # Stop current application gracefully
+          pm2 stop hmh-global || pm2 stop hmh-api || echo "No PM2 process found"
+          
+          # Move old app to backup location and move new app to app location
+          if [ -d $APP_DIR ]; then
+            mv $APP_DIR $APP_DIR.old
+          fi
+          mv $TEMP_DIR $APP_DIR
+          
+          # Set proper permissions
+          sudo chown -R www-data:www-data $APP_DIR/public || echo "Public dir not found"
+          sudo chown -R www-data:www-data $APP_DIR/uploads || echo "Uploads dir not found"
+          sudo chown -R $USER:$USER $APP_DIR
+          chmod +x $APP_DIR/scripts/*.sh 2>/dev/null || echo "No scripts directory found"
+          
+          # Ensure .env exists
+          if [ ! -f $APP_DIR/.env ]; then
+            echo "📝 Creating production .env file..."
+            cat > $APP_DIR/.env << 'EOF'
           NODE_ENV=production
           PORT=5000
-          MONGODB_URI=${{ secrets.MONGODB_URI }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          EMAIL_USER=${{ secrets.EMAIL_USER }}
-          EMAIL_PASS=${{ secrets.EMAIL_PASS }}
-          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+          MONGO_URI=mongodb://localhost:27017/hmh-global
+          JWT_SECRET=mySuperSecretKey12345!
+          SMTP_USER=eventsphere@worldoftech.company
+          SMTP_PASS=World-of-tech-2024
+          SMTP_HOSTNAME=smtp.hostinger.com
+          SMTP_PORT=465
+          FRONTEND_URL=https://hmhglobal.co.uk
           EOF
           fi
           
-          # Start the application with PM2
-          pm2 start ecosystem.config.js --env production || pm2 start server.js --name "hmh-global" --env production
+          cd $APP_DIR
+          
+          echo "🚀 Starting new application..."
+          # Start with the correct PM2 process name
+          pm2 delete hmh-global 2>/dev/null || pm2 delete hmh-api 2>/dev/null || echo "No existing PM2 process"
+          pm2 start index.js --name "hmh-api" --env production
           
           # Save PM2 configuration
           pm2 save
           
-          # Clean up
+          echo "✅ Application started successfully!"
+    
+    - name: Health Check and Finalize
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        script: |
+          APP_DIR="/var/www/hmh-global"
+          
+          echo "🏥 Performing health checks..."
+          
+          # Wait for application to start
+          sleep 10
+          
+          # Check if PM2 process is running
+          if pm2 status | grep -q "online"; then
+            echo "✅ PM2 process is online"
+          else
+            echo "❌ PM2 process is not running properly"
+            echo "Rolling back..."
+            pm2 stop hmh-api || true
+            if [ -d $APP_DIR.old ]; then
+              rm -rf $APP_DIR
+              mv $APP_DIR.old $APP_DIR
+              cd $APP_DIR
+              pm2 start index.js --name "hmh-api" --env production
+            fi
+            exit 1
+          fi
+          
+          # Check if website responds
+          sleep 5
+          if curl -f -s "http://localhost:5000" > /dev/null; then
+            echo "✅ Backend API is responding"
+          else
+            echo "❌ Backend API is not responding"
+            exit 1
+          fi
+          
+          # Reload nginx to ensure proper routing
+          sudo systemctl reload nginx || echo "Nginx reload failed"
+          
+          # Final website check
+          sleep 5
+          if curl -f -s "https://hmhglobal.co.uk" > /dev/null; then
+            echo "✅ Website is accessible externally"
+          else
+            echo "⚠️ Website may not be accessible externally (check DNS/SSL)"
+          fi
+          
+          # Clean up old deployment if everything is working
+          if [ -d $APP_DIR.old ]; then
+            rm -rf $APP_DIR.old
+            echo "🧹 Cleaned up old deployment"
+          fi
+          
+          # Clean up temp files
           rm -f /tmp/deployment.tar.gz
           
-          # Restart Nginx if it exists
-          sudo systemctl reload nginx || echo "Nginx not found or already running"
-          
-          echo "Deployment completed successfully!"
+          echo "🎉 Deployment completed successfully!"
+          echo "📊 Current status:"
+          pm2 status
+          echo "💾 Disk usage:"
+          df -h /var/www/
