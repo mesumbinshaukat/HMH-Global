@@ -1,0 +1,25 @@
+{
+  "name": "hmh-global",
+  "version": "1.0.0",
+  "description": "A full-stack e-commerce platform built with React.js frontend and Node.js/Express backend, featuring automated product scraping from Northwest Cosmetics. Deployed on Ubuntu VPS with Nginx reverse proxy, MongoDB database, and automated daily product updates.",
+  "main": "comprehensive_api_test.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Huzaifa1509/HMH-Global.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Huzaifa1509/HMH-Global/issues"
+  },
+  "homepage": "https://github.com/Huzaifa1509/HMH-Global#readme",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "react-quill": "^2.0.0",
+    "recharts": "^3.1.0"
+  }
+}

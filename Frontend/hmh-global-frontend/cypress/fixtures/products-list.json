@@ -1,0 +1,46 @@
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "1",
+        "name": "Test Product 1",
+        "description": "A test product description",
+        "price": 29.99,
+        "salePrice": 24.99,
+        "brand": "Test Brand",
+        "stockQuantity": 50,
+        "images": ["/uploads/product1.jpg"],
+        "isActive": true,
+        "isFeatured": false,
+        "category": {
+          "id": "cat1",
+          "name": "Electronics"
+        },
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "2",
+        "name": "Test Product 2",
+        "description": "Another test product",
+        "price": 49.99,
+        "brand": "Another Brand",
+        "stockQuantity": 25,
+        "images": ["/uploads/product2.jpg"],
+        "isActive": true,
+        "isFeatured": true,
+        "category": {
+          "id": "cat2",
+          "name": "Clothing"
+        },
+        "createdAt": "2024-01-02T00:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pages": 1,
+      "total": 2,
+      "limit": 12
+    }
+  }
+}

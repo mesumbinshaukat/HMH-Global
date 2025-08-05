@@ -1,0 +1,21 @@
+{
+  "shippingAddress": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "address1": "123 Test Street",
+    "city": "London",
+    "state": "England",
+    "zipCode": "SW1A 1AA",
+    "country": "UK"
+  },
+  "billingAddress": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "address1": "123 Test Street",
+    "city": "London",
+    "state": "England",
+    "zipCode": "SW1A 1AA",
+    "country": "UK"
+  },
+  "paymentMethod": "cash-on-delivery"
+}

@@ -119,11 +119,11 @@ const Header: React.FC = () => {
                 <img src={logo} alt="HMH Global" className="h-12 w-12 object-cover relative z-10" />
                 <div className="absolute inset-0 bg-gradient-to-br from-hmh-gold-400 to-hmh-gold-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-500"></div>
               </div>
-              <div className="hidden sm:block">
-                <div className="text-2xl font-black text-hmh-black-900 tracking-tight group-hover:text-hmh-gold-600 transition-colors duration-500">
+              <div className="hidden sm:block flex-shrink-1 min-w-0">
+                <div className="text-lg font-black text-hmh-black-900 tracking-tight group-hover:text-hmh-gold-600 transition-colors duration-500 truncate">
                   HMH Global
                 </div>
-                <div className="text-xs text-hmh-black-600 uppercase tracking-wider font-bold group-hover:text-hmh-gold-500 transition-colors duration-500">
+                <div className="text-xs text-hmh-black-600 uppercase tracking-wider font-bold group-hover:text-hmh-gold-500 transition-colors duration-500 truncate">
                   Premium Lifestyle
                 </div>
               </div>
@@ -132,7 +132,7 @@ const Header: React.FC = () => {
             {/* Enhanced Search Bar - Desktop */}
             <div className="hidden lg:flex flex-1 max-w-xl mx-8">
               <form onSubmit={handleSearch} className="w-full relative group">
-                <div className={`relative bg-white rounded-full shadow-lg hover:shadow-xl focus-within:shadow-2xl transition-all duration-300 ${searchFocused ? 'ring-2 ring-hmh-gold-500' : ''}`}>
+                <div className={`search-bar relative bg-white rounded-full shadow-lg hover:shadow-xl focus-within:shadow-2xl transition-all duration-300 ${searchFocused ? 'ring-2 ring-hmh-gold-500' : ''}`}>
                   <Input
                     type="text"
                     placeholder="Search for premium products..."
@@ -145,7 +145,7 @@ const Header: React.FC = () => {
                   <Button
                     type="submit"
                     size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-hmh-gold-500 hover:bg-hmh-gold-600 text-hmh-black-900 rounded-full h-8 w-8 p-0 transition-all duration-300 hover:scale-110 hover:shadow-lg"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-hmh-gold-500 hover:bg-hmh-gold-600 text-hmh-black-900 rounded-full h-8 w-8 p-0 transition-all duration-300 hover:scale-110 hover:shadow-lg z-10"
                   >
                     <Search className="w-4 h-4" />
                   </Button>

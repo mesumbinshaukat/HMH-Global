@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { SelectWithNullState } from '../components/ui/select-with-null-state'
 import { Badge } from '../components/ui/badge'
 import { Label } from '../components/ui/label'
 import { ChevronDownIcon, FilterIcon, SearchIcon, Grid3X3, List, Star, Sparkles, ArrowRight, Heart, Eye, ShoppingCart, Zap, Shield, Truck } from 'lucide-react'
@@ -90,8 +91,17 @@ const ProductCatalog: React.FC = () => {
   }
 
   const handlePriceFilter = () => {
-    if (priceRange.min) handleFilterChange('minPrice', Number(priceRange.min))
-    if (priceRange.max) handleFilterChange('maxPrice', Number(priceRange.max))
+    try {
+      if (priceRange.min && !isNaN(Number(priceRange.min))) {
+        handleFilterChange('minPrice', Number(priceRange.min))
+      }
+      if (priceRange.max && !isNaN(Number(priceRange.max))) {
+        handleFilterChange('maxPrice', Number(priceRange.max))
+      }
+    } catch (error) {
+      console.error('Error applying price filter:', error)
+      toast.error('Invalid price range')
+    }
   }
 
   const clearFilters = () => {
@@ -141,7 +151,7 @@ const ProductCatalog: React.FC = () => {
   }
 
   const ProductCard: React.FC<{ product: Product; viewMode: 'grid' | 'list' }> = ({ product, viewMode }) => {
-    const isHovered = hoveredProduct === product._id || hoveredProduct.id
+    const isHovered = hoveredProduct === product._id || hoveredProduct === product.id
 
     if (viewMode === 'list') {
       return (
@@ -417,18 +427,20 @@ const ProductCatalog: React.FC = () => {
           <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
             {/* Enhanced Search Bar */}
             <form onSubmit={handleSearch} className="flex-1 max-w-xl w-full">
-              <div className="search-bar relative">
+              <div className="search-bar relative z-10">
                 <Input
                   type="text"
                   placeholder="Search for premium products..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-12 bg-transparent border-0 text-hmh-black-900 placeholder-gray-500 focus:ring-0 focus:border-0 rounded-full h-12"
+                  className="pr-12 bg-transparent border-0 text-hmh-black-900 placeholder-gray-500 focus:ring-0 focus:border-0 rounded-full h-12 w-full relative z-20 cursor-text"
+                  style={{ pointerEvents: 'auto' }}
                 />
                 <Button
                   type="submit"
                   size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-hmh-gold-500 hover:bg-hmh-gold-600 text-hmh-black-900 rounded-full h-8 w-8 p-0 transition-all duration-300 hover:scale-110 hover:shadow-lg"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-hmh-gold-500 hover:bg-hmh-gold-600 text-hmh-black-900 rounded-full h-8 w-8 p-0 transition-all duration-300 hover:scale-110 hover:shadow-lg z-30"
+                  style={{ pointerEvents: 'auto' }}
                 >
                   <SearchIcon className="w-4 h-4" />
                 </Button>
@@ -476,19 +488,32 @@ const ProductCatalog: React.FC = () => {
                 {/* Category Filter */}
                 <div>
                   <Label className="text-sm font-bold text-hmh-black-900 mb-2 block">Category</Label>
-                  <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
-                    <SelectTrigger className="border-gray-200 focus:border-hmh-gold-500 focus:ring-hmh-gold-500">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
-                      {categories.map((category: Category) => (
-                        <SelectItem key={category._id || category.id} value={category._id || category.id}>
-                          {category.name}
+                  <SelectWithNullState 
+                    value={filters.category || ""} 
+                    onValueChange={(value) => handleFilterChange('category', value === "" ? undefined : value)}
+                    placeholder="All Categories"
+                    emptyStateMessage="No categories available"
+                    className="border-gray-200 focus:border-hmh-gold-500 focus:ring-hmh-gold-500"
+                    data-testid="category-filter"
+                  >
+                    <SelectItem value="">All Categories</SelectItem>
+                    {categories && categories.length > 0 && categories.map((category: Category) => {
+                      const categoryId = category._id || category.id
+                      const categoryName = category.name
+                      
+                      // Skip invalid categories
+                      if (!categoryId || !categoryName) {
+                        console.warn('ProductCatalog: Skipping category with missing id or name', category)
+                        return null
+                      }
+                      
+                      return (
+                        <SelectItem key={categoryId} value={categoryId}>
+                          {categoryName}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      )
+                    })}
+                  </SelectWithNullState>
                 </div>
 
                 {/* Sort By Filter */}

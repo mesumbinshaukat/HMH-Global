@@ -1,0 +1,1 @@
+{"testUser":{"name":"Test User","email":"testuser@example.com","password":"testpass123","role":"customer"},"adminUser":{"name":"Admin User","email":"admin@example.com","password":"adminpass123","role":"admin"},"loginTest":{"email":"testuser@example.com","password":"testpass123"},"adminLogin":{"email":"admin@example.com","password":"adminpass123"}}

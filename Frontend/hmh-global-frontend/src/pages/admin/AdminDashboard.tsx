@@ -10,12 +10,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '../../components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, categoryService } from '../../services';
-import { Product, Category, ProductFilters, Order } from '../../types';
-import { Trash, Edit, Search, Filter, Download, Plus, Upload, X } from 'lucide-react';
+import { Product, Category, ProductFilters, Order, User } from '../../types';
+import { 
+  Trash, Edit, Search, Filter, Download, Plus, Upload, X, Users, ShoppingBag, 
+  TrendingUp, DollarSign, BarChart3, PieChart, Calendar, FileText, 
+  Settings, UserCheck, Eye, RefreshCw, Menu
+} from 'lucide-react';
 import { orderService } from '../../services/orders';
 import { Textarea } from '../../components/ui/textarea';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Label } from '../../components/ui/label';
+import { adminService, AdminStats, AdminMetrics } from '../../services/admin';
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+
+// Chart colors
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 const AdminDashboard: React.FC = () => {
   const [tab, setTab] = useState('overview');
@@ -621,14 +635,70 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-8">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-        </TabsList>
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white shadow-sm border-b px-4 py-3 flex items-center justify-between">
+        <h1 className="text-xl font-bold">Admin Dashboard</h1>
+        <Button variant="outline" size="sm">
+          <Menu className="w-4 h-4" />
+        </Button>
+      </div>
+      
+      <div className="flex min-h-screen">
+        {/* Left Navigation */}
+        <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white shadow-sm border-r">
+          <div className="p-6 border-b">
+            <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+          </div>
+          <nav className="flex-1 p-4 space-y-2">
+            <button
+              onClick={() => setTab('overview')}
+              className={`w-full flex items-center px-3 py-2 text-left rounded-md transition-colors ${
+                tab === 'overview'
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5 mr-3" />
+              Overview
+            </button>
+            <button
+              onClick={() => setTab('products')}
+              className={`w-full flex items-center px-3 py-2 text-left rounded-md transition-colors ${
+                tab === 'products'
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <ShoppingBag className="w-5 h-5 mr-3" />
+              Products
+            </button>
+            <button
+              onClick={() => setTab('orders')}
+              className={`w-full flex items-center px-3 py-2 text-left rounded-md transition-colors ${
+                tab === 'orders'
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <FileText className="w-5 h-5 mr-3" />
+              Orders
+            </button>
+          </nav>
+        </aside>
+        
+        {/* Main Content */}
+        <main className="flex-1 p-6 lg:p-8">
+          <div className="hidden lg:block mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          </div>
+          
+          <Tabs value={tab} onValueChange={setTab} className="lg:hidden">
+            <TabsList className="mb-8 grid w-full grid-cols-3">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="products">Products</TabsTrigger>
+              <TabsTrigger value="orders">Orders</TabsTrigger>
+            </TabsList>
         <TabsContent value="overview">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card>
@@ -688,7 +758,79 @@ const AdminDashboard: React.FC = () => {
               </div>
             )}
           </div>
-          <p className="text-gray-600">Use the tabs above to manage products and orders.</p>
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Revenue Trend
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={[
+                    { name: 'Jan', revenue: 4000 },
+                    { name: 'Feb', revenue: 3000 },
+                    { name: 'Mar', revenue: 2000 },
+                    { name: 'Apr', revenue: 2780 },
+                    { name: 'May', revenue: 1890 },
+                    { name: 'Jun', revenue: 2390 },
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="w-5 h-5 mr-2" />
+                  Order Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsPieChart>
+                    <Pie
+                      data={[
+                        { name: 'Pending', value: 30, fill: COLORS[0] },
+                        { name: 'Processing', value: 45, fill: COLORS[1] },
+                        { name: 'Shipped', value: 20, fill: COLORS[2] },
+                        { name: 'Delivered', value: 65, fill: COLORS[3] },
+                        { name: 'Cancelled', value: 5, fill: COLORS[4] },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label
+                    >
+                      {[
+                        { name: 'Pending', value: 30, fill: COLORS[0] },
+                        { name: 'Processing', value: 45, fill: COLORS[1] },
+                        { name: 'Shipped', value: 20, fill: COLORS[2] },
+                        { name: 'Delivered', value: 65, fill: COLORS[3] },
+                        { name: 'Cancelled', value: 5, fill: COLORS[4] },
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <p className="text-gray-600">Use the navigation to manage products and orders.</p>
         </TabsContent>
         <TabsContent value="products">
           <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -1323,6 +1465,8 @@ const AdminDashboard: React.FC = () => {
           </Dialog>
         </TabsContent>
       </Tabs>
+      </main>
+      </div>
     </div>
   );
 };

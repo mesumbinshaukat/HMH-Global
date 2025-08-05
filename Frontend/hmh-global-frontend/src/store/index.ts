@@ -14,9 +14,16 @@ interface AuthState {
 interface CartState {
   cart: Cart | null
   isLoading: boolean
+  error: string | null
   setCart: (cart: Cart | null) => void
   clearCart: () => void
   setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  addItem: (productId: string, quantity: number) => void
+  updateItem: (productId: string, quantity: number) => void
+  removeItem: (productId: string) => void
+  getItemCount: () => number
+  getTotalPrice: () => number
 }
 
 interface UIState {
@@ -62,13 +69,96 @@ export const useAuthStore = create<AuthState>()(
   )
 )
 
-export const useCartStore = create<CartState>((set) => ({
-  cart: null,
-  isLoading: false,
-  setCart: (cart) => set({ cart }),
-  clearCart: () => set({ cart: null }),
-  setLoading: (loading) => set({ isLoading: loading }),
-}))
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      cart: null,
+      isLoading: false,
+      error: null,
+      setCart: (cart) => set({ cart, error: null }),
+      clearCart: () => set({ cart: null, error: null }),
+      setLoading: (loading) => set({ isLoading: loading }),
+      setError: (error) => set({ error }),
+      addItem: (productId, quantity) => {
+        const state = get()
+        if (!state.cart) return
+        
+        const existingItem = state.cart.items.find(item => item.productId === productId)
+        if (existingItem) {
+          // Update existing item
+          const updatedItems = state.cart.items.map(item =>
+            item.productId === productId
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          )
+          set({
+            cart: {
+              ...state.cart,
+              items: updatedItems
+            }
+          })
+        } else {
+          // Add new item (this would need product data)
+          console.warn('Adding new cart item requires product data. Use API instead.')
+        }
+      },
+      updateItem: (productId, quantity) => {
+        const state = get()
+        if (!state.cart) return
+        
+        if (quantity <= 0) {
+          // Remove item
+          const updatedItems = state.cart.items.filter(item => item.productId !== productId)
+          set({
+            cart: {
+              ...state.cart,
+              items: updatedItems
+            }
+          })
+        } else {
+          // Update quantity
+          const updatedItems = state.cart.items.map(item =>
+            item.productId === productId
+              ? { ...item, quantity }
+              : item
+          )
+          set({
+            cart: {
+              ...state.cart,
+              items: updatedItems
+            }
+          })
+        }
+      },
+      removeItem: (productId) => {
+        const state = get()
+        if (!state.cart) return
+        
+        const updatedItems = state.cart.items.filter(item => item.productId !== productId)
+        set({
+          cart: {
+            ...state.cart,
+            items: updatedItems
+          }
+        })
+      },
+      getItemCount: () => {
+        const state = get()
+        if (!state.cart) return 0
+        return state.cart.items.reduce((total, item) => total + item.quantity, 0)
+      },
+      getTotalPrice: () => {
+        const state = get()
+        if (!state.cart) return 0
+        return state.cart.items.reduce((total, item) => total + (item.price * item.quantity), 0)
+      },
+    }),
+    {
+      name: 'cart-storage',
+      partialize: (state) => ({ cart: state.cart }),
+    }
+  )
+)
 
 export const useUIStore = create<UIState>((set) => ({
   isMobileMenuOpen: false,

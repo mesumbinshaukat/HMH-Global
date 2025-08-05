@@ -1,0 +1,70 @@
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "order1",
+        "orderNumber": "ORD-2024-001",
+        "status": "pending",
+        "total": 79.98,
+        "subtotal": 74.98,
+        "tax": 5.00,
+        "shipping": 0.00,
+        "paymentMethod": "credit-card",
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "user": {
+          "id": "user1",
+          "email": "customer@example.com"
+        },
+        "items": [
+          {
+            "id": "item1",
+            "productId": "1",
+            "name": "Test Product 1",
+            "price": 24.99,
+            "quantity": 2,
+            "product": {
+              "name": "Test Product 1"
+            }
+          },
+          {
+            "id": "item2",
+            "productId": "2",
+            "name": "Test Product 2",
+            "price": 49.99,
+            "quantity": 1,
+            "product": {
+              "name": "Test Product 2"
+            }
+          }
+        ],
+        "shippingAddress": {
+          "firstName": "John",
+          "lastName": "Doe",
+          "street": "123 Main St",
+          "city": "Anytown",
+          "state": "CA",
+          "zipCode": "12345",
+          "country": "USA",
+          "phone": "+1234567890"
+        },
+        "billingAddress": {
+          "firstName": "John",
+          "lastName": "Doe",
+          "street": "123 Main St",
+          "city": "Anytown",
+          "state": "CA",
+          "zipCode": "12345",
+          "country": "USA",
+          "phone": "+1234567890"
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pages": 1,
+      "total": 1,
+      "limit": 12
+    }
+  }
+}
