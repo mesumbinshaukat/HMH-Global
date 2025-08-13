@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { orderService } from '../services/orders'
+// import { orderService } from '../services/orders'
 import { useCartStore } from '../store'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -13,7 +13,7 @@ import { Label } from '../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Checkbox } from '../components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
-import { CreditCardIcon, TruckIcon, ShieldCheckIcon, ArrowLeftIcon, CheckCircleIcon, UserIcon, MailIcon } from 'lucide-react'
+import { CreditCardIcon, TruckIcon, ShieldCheckIcon, ArrowLeftIcon, CheckCircleIcon, UserIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Guest checkout schema
@@ -23,7 +23,7 @@ const guestCheckoutSchema = z.object({
     email: z.string().email('Invalid email address'),
     phone: z.string().optional(),
   }),
-  paymentMethod: z.enum(['credit-card', 'paypal', 'stripe', 'bank-transfer', 'cash-on-delivery']),
+  paymentMethod: z.string().default('cash-on-delivery'),
   shippingAddress: z.object({
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
@@ -48,7 +48,7 @@ const guestCheckoutSchema = z.object({
     country: z.string().min(1, 'Country is required'),
     phone: z.string().optional(),
   }),
-  sameAsShipping: z.boolean().default(false),
+  sameAsShipping: z.boolean(),
 })
 
 type GuestCheckoutFormData = z.infer<typeof guestCheckoutSchema>

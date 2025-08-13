@@ -81,13 +81,13 @@ const ProductDetail: React.FC = () => {
   // Early return for undefined or invalid product ID
   if (!id || id === 'undefined' || id === 'null') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-commando-green-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-rose-400 to-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-10 h-10 text-hmh-black-900" />
+          <div className="w-20 h-20 bg-gradient-to-br from-baby-pink-400 to-baby-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Sparkles className="w-10 h-10 text-commando-green-900" />
           </div>
-          <h1 className="text-3xl font-black text-hmh-black-900 mb-4">Product Not Found</h1>
-          <p className="text-hmh-black-600 mb-8 max-w-md mx-auto">The product you're looking for doesn't exist or has been removed from our collection.</p>
+          <h1 className="text-3xl font-black text-commando-green-900 mb-4">Product Not Found</h1>
+          <p className="text-commando-green-600 mb-8 max-w-md mx-auto">The product you're looking for doesn't exist or has been removed from our collection.</p>
           <Button 
             variant="premium" 
             size="lg"
@@ -228,7 +228,7 @@ const ProductDetail: React.FC = () => {
           {/* Product Images */}
           <div className="space-y-6">
             <div className="relative">
-              <div className="aspect-square bg-gradient-to-br from-rose-100 to-rose-200 rounded-2xl overflow-hidden">
+              <div className="aspect-square bg-gradient-to-br from-baby-pink-100 to-baby-pink-200 rounded-2xl overflow-hidden">
                 {product.images?.[selectedImage] ? (
                   <img
 src={`${process.env.REACT_APP_API_URL}${product.images[selectedImage]}`}
@@ -238,8 +238,8 @@ src={`${process.env.REACT_APP_API_URL}${product.images[selectedImage]}`}
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
-                      <Sparkles className="w-16 h-16 text-rose-500 mx-auto mb-4" />
-                      <span className="text-hmh-black-600">Product Image</span>
+                      <Sparkles className="w-16 h-16 text-baby-pink-500 mx-auto mb-4" />
+                      <span className="text-commando-green-600">Product Image</span>
                     </div>
                   </div>
                 )}
@@ -269,8 +269,8 @@ src={`${process.env.REACT_APP_API_URL}${product.images[selectedImage]}`}
                     onClick={() => setSelectedImage(index)}
                     className={`aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                       selectedImage === index 
-                        ? 'border-rose-500 shadow-lg' 
-                        : 'border-gray-200 hover:border-rose-300'
+                        ? 'border-baby-pink-500 shadow-lg' 
+                        : 'border-gray-200 hover:border-baby-pink-300'
                     }`}
                   >
                     <img
@@ -321,17 +321,17 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
                 </div>
               </div>
               
-              <h1 className="text-4xl font-black text-hmh-black-900 mb-4 leading-tight">
+              <h1 className="text-4xl font-black text-commando-green-900 mb-4 leading-tight">
                 {product.name}
               </h1>
               
               <div className="flex items-center space-x-4 mb-6">
                 <div className="flex items-center space-x-1">
-                  <Star className="w-5 h-5 text-rose-500 fill-current" />
-                  <span className="text-lg font-bold text-hmh-black-900">
+                  <Star className="w-5 h-5 text-baby-pink-500 fill-current" />
+                  <span className="text-lg font-bold text-commando-green-900">
                     {typeof product.averageRating === 'number' ? product.averageRating.toFixed(1) : '0.0'}
                   </span>
-                  <span className="text-hmh-black-600">({product.reviewCount} reviews)</span>
+                  <span className="text-commando-green-600">({product.reviewCount} reviews)</span>
                 </div>
               </div>
               
@@ -349,7 +349,7 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
                     </span>
                   </>
                 ) : (
-                  <span className="text-4xl font-black text-hmh-black-900">
+                  <span className="text-4xl font-black text-commando-green-900">
                     {formatPrice(product.price)}
                   </span>
                 )}
@@ -358,8 +358,8 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
 
             {/* Product Description */}
             <div>
-              <h3 className="text-lg font-bold text-hmh-black-900 mb-3">Description</h3>
-              <p className="text-hmh-black-600 leading-relaxed">
+              <h3 className="text-lg font-bold text-commando-green-900 mb-3">Description</h3>
+              <p className="text-commando-green-600 leading-relaxed">
                 {product.description}
               </p>
             </div>
@@ -367,7 +367,7 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
             {/* Add to Cart Section */}
             <div className="space-y-4">
               <div className="flex items-center space-x-4">
-                <Label htmlFor="quantity" className="text-sm font-semibold text-hmh-black-900">
+                <Label htmlFor="quantity" className="text-sm font-semibold text-commando-green-900">
                   Quantity:
                 </Label>
                 <Select value={quantity.toString()} onValueChange={(value) => setQuantity(Number(value))}>
@@ -387,7 +387,7 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
               <Button
                 onClick={handleAddToCart}
                 disabled={product.stockQuantity === 0 || addToCartMutation.isPending}
-                className="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="w-full bg-gradient-to-r from-baby-pink-500 to-baby-pink-600 hover:from-baby-pink-600 hover:to-baby-pink-700 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
                 {addToCartMutation.isPending ? (
                   <RefreshCwIcon className="w-5 h-5 mr-2 animate-spin" />
@@ -399,32 +399,32 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
             </div>
 
             {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-baby-pink-100">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
-                  <TruckIcon className="w-5 h-5 text-rose-600" />
+                <div className="w-10 h-10 bg-baby-pink-100 rounded-full flex items-center justify-center">
+                  <TruckIcon className="w-5 h-5 text-baby-pink-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-hmh-black-900">Free Shipping</p>
-                  <p className="text-xs text-hmh-black-600">On orders over £50</p>
+                  <p className="text-sm font-semibold text-commando-green-900">Free Shipping</p>
+                  <p className="text-xs text-commando-green-600">On orders over £50</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
-                  <ShieldCheckIcon className="w-5 h-5 text-rose-600" />
+                <div className="w-10 h-10 bg-baby-pink-100 rounded-full flex items-center justify-center">
+                  <ShieldCheckIcon className="w-5 h-5 text-baby-pink-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-hmh-black-900">Secure Payment</p>
-                  <p className="text-xs text-hmh-black-600">100% protected</p>
+                  <p className="text-sm font-semibold text-commando-green-900">Secure Payment</p>
+                  <p className="text-xs text-commando-green-600">100% protected</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
-                  <RefreshCwIcon className="w-5 h-5 text-rose-600" />
+                <div className="w-10 h-10 bg-baby-pink-100 rounded-full flex items-center justify-center">
+                  <RefreshCwIcon className="w-5 h-5 text-baby-pink-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-hmh-black-900">Easy Returns</p>
-                  <p className="text-xs text-hmh-black-600">30-day policy</p>
+                  <p className="text-sm font-semibold text-commando-green-900">Easy Returns</p>
+                  <p className="text-xs text-commando-green-600">30-day policy</p>
                 </div>
               </div>
             </div>

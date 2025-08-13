@@ -9,11 +9,11 @@ const FAQPage: React.FC = () => {
   ]
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-4xl font-extrabold text-rose-600 mb-6">Frequently Asked Questions</h1>
+      <h1 className="text-4xl font-extrabold text-commando-green-900 mb-6">Frequently Asked Questions</h1>
       <div className="space-y-4">
         {faqs.map((f, idx) => (
-          <div key={idx} className="p-5 rounded-2xl bg-rose-50 border border-rose-100">
-            <h3 className="font-bold text-rose-700">{f.q}</h3>
+          <div key={idx} className="p-5 rounded-2xl bg-baby-pink-50 border border-baby-pink-100">
+            <h3 className="font-bold text-commando-green-700">{f.q}</h3>
             <p className="text-gray-700 mt-1 text-sm">{f.a}</p>
           </div>
         ))}

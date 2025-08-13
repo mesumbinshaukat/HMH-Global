@@ -52,7 +52,7 @@ const CONFIG = {
             '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
             '--no-zygote',
-            '--single-process'
+            '--disable-features=site-per-process' // Help with frame issues
         ],
         defaultViewport: { width: 1920, height: 1080 }
     }
@@ -399,325 +399,349 @@ const extractProductData = async (page) => {
         
         // Fallback price search in page content
         if (!price || price <= 0) {
-            const bodyText = document.body.textContent || '';
-            const priceMatches = [
-                bodyText.match(/[£$]\s?(\d+(?:\.\d{1,2})?)/),
-                bodyText.match(/(\d+(?:\.\d{1,2})?\s?[£$])/),
-                bodyText.match(/Price[:\s]*[£$]?\s*(\d+(?:\.\d{1,2})?)/i),
-                bodyText.match(/Cost[:\s]*[£$]?\s*(\d+(?:\.\d{1,2})?)/i)
-            ];
-            
-            for (const match of priceMatches) {
-                if (match && parseFloat(match[1]) > 0) {
-                    price = parseFloat(match[1]);
-                    break;
-                }
+            const pageText = document.body.textContent;
+            const poundRegex = /£\s*(\d+\.\d{1,2})/g;
+            const matches = pageText.match(poundRegex);
+            if (matches && matches.length > 0) {
+                const firstPrice = matches[0].replace(/[^\d.]/g, '');
+                price = parseFloat(firstPrice);
             }
         }
 
-        // Enhanced image extraction for Northwest Cosmetics
+        // Enhanced image extraction
         let images = [];
         const imageSelectors = [
-            '#_EKM_PRODUCTIMAGE_1_2',
-            '#_EKM_PRODUCTIMAGE_2_2',
-            '#_EKM_PRODUCTIMAGE_3_2',
-            '#_EKM_PRODUCTIMAGE_4_2',
-            '#_EKM_PRODUCTIMAGE_5_2',
-            '.main-prod-image img',
+            '.zoom img',
             '.product-image img',
+            '.gallery img',
+            '.product-photo img',
             '.product__media img',
+            '#ProductImage',
+            '.product-single__media img',
+            '.product-img',
             '.product-gallery img',
-            '.main-image img',
-            '.featured-image img',
-            '.product-photos img',
-            'img[itemprop="image"]',
-            'img[src*="ekmcdn.com"]',
-            'img[src*="product"]',
-            'img[alt*="product"]'
+            '#Image'
         ];
         
-        // Get main product images
+        // First try to get specific product images
         for (const selector of imageSelectors) {
-            const imgs = document.querySelectorAll(selector);
-            for (const img of imgs) {
-                if (img.src && 
-                    img.src.startsWith('http') &&
-                    !img.src.includes('placeholder') && 
-                    !img.src.includes('loading') &&
-                    !img.src.includes('spinner') &&
-                    !img.src.includes('logo') &&
-                    !img.src.includes('//:0') &&
-                    (img.width > 50 || img.naturalWidth > 50) && 
-                    (img.height > 50 || img.naturalHeight > 50)) {
-                    images.push(img.src);
-                }
-            }
-        }
-        
-        // Get additional gallery images
-        const allImages = document.querySelectorAll('img');
-        for (const img of allImages) {
-            if (img.src && 
-                img.src.startsWith('http') &&
-                !images.includes(img.src) &&
-                !img.src.includes('placeholder') &&
-                !img.src.includes('loading') &&
-                !img.src.includes('icon') &&
-                !img.src.includes('logo') &&
-                !img.src.includes('button') &&
-                !img.src.includes('arrow') &&
-                !img.src.includes('//:0') &&
-                (img.width > 100 || img.naturalWidth > 100 || img.height > 100 || img.naturalHeight > 100) &&
-                (img.src.includes('ekmcdn.com') || img.src.includes('product') || img.src.includes('item') || img.alt?.toLowerCase().includes('product'))) {
-                images.push(img.src);
-            }
-        }
-        
-        // Clean and limit images
-        images = [...new Set(images)]
-            .filter(url => /^https?:\/\//.test(url) && !url.includes('//:0'))
-            .slice(0, 5);
-
-        // Enhanced brand extraction
-        let brand = 'Northwest Cosmetics';
-        const brandSelectors = [
-            '.brand',
-            '.manufacturer',
-            '.product-brand',
-            '[data-brand]',
-            '.brand-name',
-            '.maker'
-        ];
-        
-        for (const selector of brandSelectors) {
-            const el = document.querySelector(selector);
-            if (el && el.textContent && el.textContent.trim()) {
-                brand = el.textContent.trim();
-                break;
-            }
-        }
-
-        // Extract specifications
-        const specifications = {};
-        const specSelectors = [
-            'table tr',
-            '.specs li',
-            '.specifications li',
-            '.product-info li',
-            '.product-details li',
-            '.attributes li'
-        ];
-        
-        for (const selector of specSelectors) {
-            const elements = document.querySelectorAll(selector);
-            for (const el of elements) {
-                const text = el.textContent || '';
-                if (text.includes(':')) {
-                    const [key, value] = text.split(':').map(s => s.trim());
-                    if (key && value && key.length < 50 && value.length < 200) {
-                        specifications[key] = value;
+            const els = document.querySelectorAll(selector);
+            if (els.length > 0) {
+                for (const el of els) {
+                    const src = el.src || el.getAttribute('data-src') || el.getAttribute('data-lazy-src');
+                    if (src && !src.includes('placeholder') && !src.includes('loader')) {
+                        images.push(src);
                     }
                 }
+                if (images.length > 0) break;
             }
         }
-
-        return { 
-            name: name.substring(0, 200), 
-            description: description.substring(0, 1000), 
-            price, 
-            images, 
-            specifications,
-            brand: brand.substring(0, 100)
+        
+        // If no images found, try to get all relevant images
+        if (images.length === 0) {
+            const allImages = document.querySelectorAll('img');
+            for (const img of allImages) {
+                const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
+                const width = img.width || img.getAttribute('width');
+                const height = img.height || img.getAttribute('height');
+                const alt = img.alt || '';
+                
+                if (src && 
+                    !src.includes('logo') && 
+                    !src.includes('banner') && 
+                    !src.includes('icon') &&
+                    (parseInt(width) > 100 || parseInt(height) > 100 || alt.includes(name))) {
+                    images.push(src);
+                }
+            }
+        }
+        
+        // Add thumbnail as first image if present
+        const thumbnail = document.querySelector('.thumbnail img');
+        if (thumbnail && thumbnail.src) {
+            images.unshift(thumbnail.src);
+        }
+        
+        // Remove duplicates and limit number of images
+        images = [...new Set(images)].slice(0, 10);
+        
+        return {
+            name,
+            description,
+            price,
+            images,
+            brand: 'Northwest Cosmetics', // Default brand
+            shortDescription: description.substring(0, 150) + (description.length > 150 ? '...' : ''),
+            salePrice: 0, // No sale price by default
+            stockQuantity: 100, // Default stock
+            pageTitle: document.title || ''
         };
     });
 };
 
-// Enhanced product processing with Excel integration
-const processProduct = async (page, productUrl, category) => {
-    let retries = 0;
-    
-    while (retries < CONFIG.MAX_RETRIES) {
+// Enhanced product scraping with retry mechanism
+const scrapeProductWithRetry = async (browser, productUrl, maxRetries = CONFIG.MAX_RETRIES) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        let page;
         try {
-            await page.goto(productUrl, { 
-                waitUntil: 'networkidle2', 
-                timeout: 30000 
+            log('info', `Processing product: ${productUrl} (attempt ${attempt}/${maxRetries})`);
+            
+            page = await browser.newPage();
+            await page.setDefaultTimeout(45000); // Increased timeout
+            
+            // Set user agent to avoid detection
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+            
+            // Navigate to product page with proper wait conditions
+            const response = await page.goto(productUrl, { 
+                waitUntil: ['networkidle0', 'load', 'domcontentloaded'],
+                timeout: 45000 
             });
-            await sleep(1000);
-
+            
+            if (!response || !response.ok()) {
+                throw new Error(`HTTP ${response?.status()} - Page failed to load`);
+            }
+            
+            // Wait for page to be completely ready
+            await page.waitForFunction('document.readyState === "complete"', { timeout: 10000 });
+            
+            // Additional wait for dynamic content
+            await sleep(3000);
+            
+            // Check if page actually loaded properly
+            const title = await page.title();
+            if (!title || title.includes('404') || title.includes('Error') || title.length < 5) {
+                throw new Error('Page not found or error page');
+            }
+            
+            // Extract data from the page
             const productData = await extractProductData(page);
             
-            if (!productData || !productData.name || productData.name.length < 2) {
-                throw new Error('Invalid product data extracted');
-            }
+            // Extract category name from URL
+            const categoryMatch = productUrl.match(/\/([^\/]+-\d+)-p\.asp/);
+            const categoryName = categoryMatch ? categoryMatch[1].split('-').slice(0, -1).join(' ') : 'Other';
             
-            // Check for fragrance products
-            const isFragrance = CONFIG.EXCLUDED_KEYWORDS.some(keyword => 
-                productData.name.toLowerCase().includes(keyword) ||
-                productData.description.toLowerCase().includes(keyword)
-            );
+            // Create or find category
+            const category = await ensureCategory(categoryName);
             
-            if (isFragrance) {
-                log('info', `Skipping fragrance product: ${productData.name}`);
-                return { status: 'skipped', reason: 'fragrance' };
-            }
-            
-            // Check Excel for price data
-            const excelPrice = priceData.get(productData.name.toLowerCase().trim());
-            if (excelPrice) {
-                productData.price = excelPrice.finalPrice;
-                productData.originalPrice = excelPrice.originalPrice;
-                productData.brand = excelPrice.brand || productData.brand;
-                log('info', `Using Excel price for ${productData.name}: £${excelPrice.finalPrice}`);
+            // Adjust price if we have it in Excel
+            const excelKey = productData.name.toLowerCase().trim();
+            if (priceData.has(excelKey)) {
+                const priceInfo = priceData.get(excelKey);
+                productData.price = priceInfo.finalPrice;
+                productData.brand = priceInfo.brand || productData.brand;
             } else if (productData.price > 0) {
-                // Add markup to scraped price
-                productData.originalPrice = productData.price;
-                productData.price = productData.price + CONFIG.PRICE_MARKUP;
+                // Add markup if we have a scraped price
+                productData.price += CONFIG.PRICE_MARKUP;
             } else {
-                throw new Error('No valid price found');
+                // Default price if nothing found
+                productData.price = 2.99;
             }
             
-            // Check for existing product
-            const existingProduct = await Product.findOne({
-                $or: [
-                    { name: productData.name },
-                    { 'metadata.sourceUrl': productUrl }
-                ]
-            });
+            // Generate SKU
+            const timestamp = Date.now();
+            const sku = `NWC-${productData.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}-${timestamp}`;
             
-            if (existingProduct && !CONFIG.UPDATE_IMAGES) {
-                log('info', `Product already exists: ${productData.name}`);
-                return { status: 'skipped', reason: 'exists' };
-            }
-            
-            // Filter and validate images
-            if (!productData.images || productData.images.length === 0) {
-                throw new Error('No valid images found');
-            }
-            
-            // Download images to organized folders
-            const imageUrls = [];
+            // Download images
+            const productImages = [];
             for (let i = 0; i < Math.min(productData.images.length, CONFIG.MAX_IMAGES_PER_PRODUCT); i++) {
                 try {
-                    const imageResult = await downloadImage(productData.images[i], productData.name, i);
-                    imageUrls.push(imageResult);
-                } catch (imgError) {
-                    log('warning', `Failed to download image ${i} for ${productData.name}`, { error: imgError.message });
+                    const image = await downloadImage(productData.images[i], productData.name, i);
+                    productImages.push(image);
+                } catch (imageError) {
+                    log('warning', `Failed to download image ${i} for ${productData.name}`, { error: imageError.message });
                 }
             }
             
-            if (imageUrls.length === 0) {
-                throw new Error('Failed to download any images');
-            }
-            
-            // Generate unique SKU
-            const sku = `NWC-${sanitizeFileName(productData.name)}-${Date.now()}`.toUpperCase();
-            
-            // Create or update product
-            const productDoc = {
+            // Create product object
+            const product = {
                 name: productData.name,
                 description: productData.description,
-                shortDescription: productData.description.substring(0, 200),
+                shortDescription: productData.shortDescription,
                 price: productData.price,
                 sku: sku,
                 category: category._id,
                 brand: productData.brand,
-                images: imageUrls,
+                images: productImages,
                 inventory: {
                     quantity: 100,
-                    trackQuantity: true,
-                    lowStockThreshold: 10
+                    lowStockThreshold: 10,
+                    trackQuantity: true
                 },
+                tags: [categoryName, 'Northwest', 'Cosmetics'],
                 isActive: true,
-                isFeatured: Math.random() < 0.1, // 10% chance of being featured
                 metadata: {
                     sourceUrl: productUrl,
-                    scrapedAt: new Date(),
-                    specifications: productData.specifications,
-                    originalBrand: productData.brand,
-                    originalPrice: productData.originalPrice,
-                    priceMarkup: CONFIG.PRICE_MARKUP,
-                    version: '2.0'
+                    scrapedAt: new Date()
                 }
             };
             
-            if (existingProduct) {
-                // Update existing product
-                Object.assign(existingProduct, productDoc);
-                await existingProduct.save();
-                log('info', `Updated product: ${productData.name}`);
-                return { status: 'updated', product: existingProduct };
-            } else {
-                // Create new product
-                const product = new Product(productDoc);
-                const savedProduct = await product.save();
-                log('info', `Created product: ${productData.name} (${savedProduct._id})`);
-                return { status: 'created', product: savedProduct };
-            }
+            // Clean up
+            if (page) await page.close();
             
+            return product;
         } catch (error) {
-            retries++;
-            log('warning', `Retry ${retries}/${CONFIG.MAX_RETRIES} for product: ${productUrl}`, { error: error.message });
-            
-            if (retries >= CONFIG.MAX_RETRIES) {
-                log('error', `Failed to process product after ${CONFIG.MAX_RETRIES} retries: ${productUrl}`, { error: error.message });
-                return { status: 'error', error: error.message };
+            if (page) {
+                try {
+                    // Take screenshot for debugging
+                    if (CONFIG.TEST_MODE) {
+                        const screenshotPath = path.join(__dirname, `../logs/error_${Date.now()}.png`);
+                        await page.screenshot({ path: screenshotPath, fullPage: true });
+                        log('info', `Error screenshot saved to ${screenshotPath}`);
+                    }
+                    await page.close();
+                } catch (closeError) {
+                    log('warning', 'Error closing page', { error: closeError.message });
+                }
             }
             
-            await sleep(CONFIG.RETRY_DELAY * retries);
+            // Log the error
+            log('warning', `Retry ${attempt}/${maxRetries} for product: ${productUrl}`, { error: error.message });
+            
+            // If this was the last attempt, throw the error
+            if (attempt === maxRetries) {
+                throw new Error(`Failed to process product after ${maxRetries} retries: ${error.message}`);
+            }
+            
+            // Exponential backoff before retrying
+            const delay = CONFIG.RETRY_DELAY * Math.pow(2, attempt - 1);
+            await sleep(delay);
         }
     }
 };
 
-// Main scraping function
-const main = async () => {
-    let browser;
-    
+// Process a single category page
+const processCategory = async (browser, categoryUrl) => {
+    let page;
     try {
-        log('info', 'Starting Enhanced Northwest Cosmetics Scraper v2.0');
+        log('info', `Processing category: ${categoryUrl}`);
+        emitProgress({ url: categoryUrl, phase: 'Processing category' });
         
-        if (CONFIG.TEST_MODE) {
-            log('info', 'Running in TEST MODE - Limited scraping');
+        page = await browser.newPage();
+        await page.setDefaultTimeout(30000);
+        
+        // Extract category name from URL
+        const categoryMatch = categoryUrl.match(/\/([^\/]+-\d+)-c\.asp/);
+        let categoryName = categoryMatch ? categoryMatch[1].replace(/-\d+$/, '').replace(/-/g, ' ') : 'Other';
+        categoryName = categoryName.replace(/\b\w/g, c => c.toUpperCase()); // Title case
+        
+        const response = await page.goto(categoryUrl, { waitUntil: 'networkidle2' });
+        
+        if (!response || !response.ok()) {
+            log('warning', `Failed to load category: ${categoryUrl}`, { status: response?.status() });
+            return { count: 0, productLinks: [] };
         }
         
-        // Initialize progress
-        emitProgress({ phase: 'Initializing', current: 0 });
+        // Extract the category page content
+        const content = await page.content();
         
-        // Load Excel prices
-        await loadExcelPrices();
+        // Find all product links
+        const productLinks = extractProductLinks(content);
+        log('info', `Found ${productLinks.length} products in ${categoryName}`);
         
-        // Connect to database
-        await mongoose.connect(process.env.MONGO_URI);
+        // Clean up
+        await page.close();
+        
+        return { count: productLinks.length, productLinks, categoryName };
+    } catch (error) {
+        log('error', `Failed to process category: ${categoryUrl}`, { error: error.message });
+        if (page) await page.close();
+        return { count: 0, productLinks: [], error: error.message };
+    }
+};
+
+// Process and save a product
+const saveProduct = async (productData) => {
+    try {
+        // Check if product with this name already exists
+        const existingProduct = await Product.findOne({ name: productData.name });
+        
+        if (existingProduct) {
+            log('info', `Product already exists: ${productData.name}`);
+            
+            // Update if requested
+            if (CONFIG.UPDATE_IMAGES) {
+                // Only update images and keep rest of data
+                existingProduct.images = productData.images;
+                existingProduct.metadata.scrapedAt = new Date();
+                await existingProduct.save();
+                log('info', `Updated images for: ${productData.name}`);
+                return { success: true, updated: true, id: existingProduct._id };
+            }
+            
+            return { success: true, skipped: true, id: existingProduct._id };
+        }
+        
+        // Create new product
+        const newProduct = new Product(productData);
+        await newProduct.save();
+        log('info', `Saved new product: ${productData.name}`);
+        
+        return { success: true, created: true, id: newProduct._id };
+    } catch (error) {
+        log('error', `Failed to save product: ${productData.name}`, { error: error.message });
+        return { success: false, error: error.message };
+    }
+};
+
+// Main scraper function
+const startScraper = async () => {
+    log('info', 'Starting Enhanced Northwest Cosmetics Scraper v2.0');
+    if (CONFIG.TEST_MODE) {
+        log('info', 'Running in TEST MODE - Limited scraping');
+    }
+    
+    // Load Excel prices
+    await loadExcelPrices();
+    
+    // Connect to MongoDB
+    try {
+        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/hmh-global');
         log('info', 'Connected to MongoDB');
-        
+    } catch (error) {
+        log('error', 'Failed to connect to MongoDB', { error: error.message });
+        process.exit(1);
+    }
+    
+    let browser;
+    try {
         // Launch browser
         browser = await puppeteer.launch(CONFIG.BROWSER_CONFIG);
-        const page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         
-        emitProgress({ phase: 'Loading sitemap' });
-        
-        // Load sitemap with retries
+        // Load sitemap to get all category URLs
         let sitemapContent = '';
-        for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
             try {
-                log('info', `Loading sitemap attempt ${attempt}/${CONFIG.MAX_RETRIES}`);
-                await page.goto('https://northwest-cosmetics.com/sitemap.asp', { 
-                    waitUntil: 'domcontentloaded', 
-                    timeout: 30000 
-                });
-                await sleep(3000);
+                retryCount++;
+                log('info', `Loading sitemap attempt ${retryCount}/${maxRetries}`);
+                
+                const page = await browser.newPage();
+                await page.setDefaultTimeout(30000);
+                
+                await page.goto('https://northwest-cosmetics.com/sitemap.asp', { waitUntil: 'networkidle2' });
                 sitemapContent = await page.content();
+                
+                await page.close();
                 
                 if (sitemapContent.length > 1000) {
                     log('info', `Sitemap loaded successfully (${sitemapContent.length} chars)`);
                     break;
+                } else {
+                    throw new Error('Sitemap content too small');
                 }
             } catch (error) {
-                log('warning', `Sitemap attempt ${attempt} failed`, { error: error.message });
-                if (attempt === CONFIG.MAX_RETRIES) {
-                    throw new Error('Failed to load sitemap after all retries');
+                log('warning', `Failed to load sitemap (attempt ${retryCount}/${maxRetries})`, { error: error.message });
+                
+                if (retryCount === maxRetries) {
+                    log('error', 'Failed to load sitemap after max retries');
+                    emitProgress({ phase: 'Failed' });
+                    return;
                 }
-                await sleep(CONFIG.RETRY_DELAY * attempt);
+                
+                await sleep(2000 * retryCount);
             }
         }
         
@@ -725,122 +749,117 @@ const main = async () => {
         const categoryLinks = extractCategoryLinks(sitemapContent);
         log('info', `Found ${categoryLinks.length} category links`);
         
-        if (CONFIG.TEST_MODE) {
-            categoryLinks.splice(2); // Limit to first 2 categories in test mode
-            log('info', `Test mode: Limited to ${categoryLinks.length} categories`);
-        }
+        // Limit categories in test mode
+        const categoriesToProcess = CONFIG.TEST_MODE ? categoryLinks.slice(0, 2) : categoryLinks;
         
-        emitProgress({ phase: 'Processing categories', categories: categoryLinks.length });
+        emitProgress({ 
+            total: categoriesToProcess.length, 
+            categories: categoriesToProcess.length,
+            phase: 'Processing categories'
+        });
         
-        // Process categories
-        let stats = {
-            processed: 0,
-            created: 0,
-            updated: 0, 
-            skipped: 0,
-            errors: 0
-        };
-        
-        for (const [categoryIndex, categoryUrl] of categoryLinks.entries()) {
-            try {
-                log('info', `Processing category ${categoryIndex + 1}/${categoryLinks.length}: ${categoryUrl}`);
-                
-                // Create category
-                const categoryName = categoryUrl.split('/').pop()
-                    .replace('-c.asp', '')
-                    .replace(/-/g, ' ')
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                    .join(' ');
-                
-                const category = await ensureCategory(categoryName);
-                
-                // Load category page
-                await page.goto(categoryUrl, { 
-                    waitUntil: 'domcontentloaded', 
-                    timeout: 30000 
-                });
-                await sleep(2000);
-                
-                const categoryContent = await page.content();
-                const productLinks = extractProductLinks(categoryContent);
-                
-                log('info', `Found ${productLinks.length} products in ${categoryName}`);
-                
-                if (CONFIG.TEST_MODE && CONFIG.PRODUCT_LIMIT) {
-                    productLinks.splice(parseInt(CONFIG.PRODUCT_LIMIT));
-                }
-                
-                // Process products in this category
-                for (const [productIndex, productUrl] of productLinks.entries()) {
-                    try {
-                        emitProgress({ 
-                            current: stats.processed + 1,
-                            url: productUrl,
-                            phase: `Processing ${categoryName} (${productIndex + 1}/${productLinks.length})`
-                        });
-                        
-                        const result = await processProduct(page, productUrl, category);
-                        
-                        switch (result.status) {
-                            case 'created':
-                                stats.created++;
-                                break;
-                            case 'updated':
-                                stats.updated++;
-                                break;
-                            case 'skipped':
-                                stats.skipped++;
-                                break;
-                            case 'error':
-                                stats.errors++;
-                                break;
-                        }
-                        
-                        stats.processed++;
-                        
-                        // Small delay between products
-                        await sleep(1000);
-                        
-                    } catch (productError) {
-                        log('error', `Failed to process product: ${productUrl}`, { error: productError.message });
-                        stats.errors++;
-                    }
-                }
-                
-                log('info', `Completed category ${categoryName}: ${productLinks.length} products processed`);
-                
-            } catch (categoryError) {
-                log('error', `Failed to process category: ${categoryUrl}`, { error: categoryError.message });
-                stats.errors++;
+        // Process each category
+        let allProductLinks = [];
+        for (let i = 0; i < categoriesToProcess.length; i++) {
+            const categoryUrl = categoriesToProcess[i];
+            
+            emitProgress({ current: i + 1, url: categoryUrl });
+            
+            const { productLinks, categoryName } = await processCategory(browser, categoryUrl);
+            log('info', `Completed category ${categoryName}: ${productLinks.length} products processed`);
+            
+            // Add to the total list of products
+            allProductLinks = [...allProductLinks, ...productLinks];
+            
+            // Introduce a delay between categories to avoid overloading the server
+            if (i < categoriesToProcess.length - 1) {
+                await sleep(1000);
             }
         }
         
-        // Final summary
-        log('info', 'Scraping completed!', stats);
+        // Remove duplicates
+        allProductLinks = [...new Set(allProductLinks)];
+        log('info', `Total unique products found: ${allProductLinks.length}`);
+        
+        // Limit products in test mode or if specified
+        let productsToProcess = allProductLinks;
+        if (CONFIG.TEST_MODE) {
+            productsToProcess = allProductLinks.slice(0, 5);
+            log('info', `Test mode: Limited to ${productsToProcess.length} products`);
+        } else if (CONFIG.PRODUCT_LIMIT) {
+            const limit = parseInt(CONFIG.PRODUCT_LIMIT);
+            productsToProcess = allProductLinks.slice(0, limit);
+            log('info', `Limited to ${productsToProcess.length} products as requested`);
+        }
+        
         emitProgress({ 
-            phase: 'Completed',
-            ...stats
+            total: productsToProcess.length, 
+            current: 0,
+            scraped: 0,
+            errors: 0,
+            skipped: 0,
+            phase: 'Processing products'
         });
         
-        scraperEmitter.emit('finish', stats);
+        // Process each product
+        for (let i = 0; i < productsToProcess.length; i++) {
+            const productUrl = productsToProcess[i];
+            
+            try {
+                emitProgress({ 
+                    current: i + 1, 
+                    url: productUrl,
+                    phase: 'Processing product'
+                });
+                
+                // Scrape product
+                const productData = await scrapeProductWithRetry(browser, productUrl);
+                
+                // Save product
+                const result = await saveProduct(productData);
+                
+                if (result.success) {
+                    if (result.created) {
+                        emitProgress({ scraped: globalProgress.scraped + 1 });
+                    } else if (result.skipped) {
+                        emitProgress({ skipped: globalProgress.skipped + 1 });
+                    }
+                } else {
+                    emitProgress({ errors: globalProgress.errors + 1 });
+                }
+            } catch (error) {
+                log('error', `Failed to process product: ${productUrl}`, { error: error.message });
+                emitProgress({ errors: globalProgress.errors + 1 });
+            }
+            
+            // Introduce a delay between products to avoid overloading the server
+            if (i < productsToProcess.length - 1) {
+                await sleep(1000);
+            }
+        }
         
+        log('info', 'Scraping completed!');
+        emitProgress({ phase: 'Completed' });
     } catch (error) {
         log('error', 'Scraper failed', { error: error.message, stack: error.stack });
-        scraperEmitter.emit('error', error);
+        emitProgress({ phase: 'Failed' });
     } finally {
+        // Clean up
         if (browser) {
             await browser.close();
         }
+        
+        // Disconnect from MongoDB
         await mongoose.disconnect();
-        log('info', 'Scraper shutdown complete');
+        log('info', 'Disconnected from MongoDB');
     }
 };
 
-// Export for external use
-module.exports = { main, scraperEmitter, CONFIG };
+// Start the scraper
+startScraper().catch(error => {
+    log('error', 'Uncaught exception in scraper', { error: error.message, stack: error.stack });
+    process.exit(1);
+});
 
-// Run if called directly
-if (require.main === module) {
-    main().catch(console.error);
-}
+// Export the emitter for progress tracking
+module.exports = { scraperEmitter };

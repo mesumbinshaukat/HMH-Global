@@ -150,7 +150,23 @@ const ProductCatalog: React.FC = () => {
     addToCartMutation.mutate({ productId, quantity: 1 })
   }
 
-  const ProductCard: React.FC<{ product: Product; viewMode: 'grid' | 'list' }> = ({ product, viewMode }) => {
+  const handleAddToWishlist = (productId: string) => {
+    toast.success('Added to wishlist')
+  }
+
+  const handleQuickView = (productId: string) => {
+    window.location.href = `/products/${productId}`
+  }
+
+  const ProductCard: React.FC<{
+    product: Product;
+    viewMode: 'grid' | 'list';
+    onAddToCart?: (productId: string, e?: React.MouseEvent) => void;
+    onAddToWishlist?: (productId: string) => void;
+    onQuickView?: (productId: string) => void;
+    hoveredProduct?: string | null;
+    setHoveredProduct?: React.Dispatch<React.SetStateAction<string | null>>;
+  }> = ({ product, viewMode, onAddToCart, onAddToWishlist, onQuickView, hoveredProduct, setHoveredProduct }) => {
     const isHovered = hoveredProduct === product._id || hoveredProduct === product.id
 
     if (viewMode === 'list') {
@@ -159,7 +175,7 @@ const ProductCatalog: React.FC = () => {
           <CardContent className="p-0">
             <div className="flex">
               <div className="relative w-48 h-48 flex-shrink-0">
-                <div className="w-full h-full bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center overflow-hidden">
+                <div className="w-full h-full bg-gradient-to-br from-baby-pink-100 to-baby-pink-200 flex items-center justify-center overflow-hidden">
                   {product.images?.[0] ? (
                     <img 
                       src={`${process.env.REACT_APP_API_URL}${product.images[0]}`}
@@ -174,10 +190,10 @@ const ProductCatalog: React.FC = () => {
                     />
                   ) : null}
                   <div className="text-center w-full h-full flex flex-col items-center justify-center" style={{ display: product.images?.[0] ? 'none' : 'flex' }}>
-                    <div className="w-16 h-16 bg-gradient-to-br from-rose-400 to-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-premium">
-                      <Sparkles className="w-8 h-8 text-hmh-black-900" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-baby-pink-400 to-baby-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-premium">
+                      <Sparkles className="w-8 h-8 text-commando-green-900" />
                     </div>
-                    <span className="text-hmh-black-600 text-sm font-bold">No Image Available</span>
+                    <span className="text-commando-green-600 text-sm font-bold">No Image Available</span>
                   </div>
                 </div>
                 {product.salePrice && (
@@ -201,10 +217,10 @@ const ProductCatalog: React.FC = () => {
               <div className="flex-1 p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="font-bold text-xl mb-2 text-hmh-black-900 group-hover:text-rose-600 transition-colors duration-300">
+                    <h3 className="font-bold text-xl mb-2 text-commando-green-900 group-hover:text-commando-green-700 transition-colors duration-300">
                       {product.name}
                     </h3>
-                    <p className="text-hmh-black-600 text-sm line-clamp-2 mb-4">
+                    <p className="text-commando-green-600 text-sm line-clamp-2 mb-4">
                       {product.description}
                     </p>
                   </div>
@@ -220,24 +236,24 @@ const ProductCatalog: React.FC = () => {
                           </span>
                         </>
                       ) : (
-                        <span className="text-2xl font-black text-hmh-black-900">
+                        <span className="text-2xl font-black text-commando-green-900">
                           {formatPrice(product.price)}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center space-x-1 mb-2">
-                      <Star className="w-4 h-4 text-rose-500 fill-current" />
-                      <span className="text-sm font-bold text-hmh-black-700">
+                      <Star className="w-4 h-4 text-baby-pink-500 fill-current" />
+                      <span className="text-sm font-bold text-commando-green-700">
                         {typeof product.averageRating === 'number' ? product.averageRating.toFixed(1) : '0.0'}
                       </span>
-                      <span className="text-xs text-hmh-black-600">({product.reviewCount || 0} reviews)</span>
+                      <span className="text-xs text-commando-green-600">({product.reviewCount || 0} reviews)</span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <span className="text-xs text-hmh-black-600 uppercase tracking-wider font-bold">
+                    <span className="text-xs text-commando-green-600 uppercase tracking-wider font-bold">
                       {product.stockQuantity > 0 ? 'In Stock' : 'Out of Stock'}
                     </span>
                     {product.brand && (
@@ -247,15 +263,15 @@ const ProductCatalog: React.FC = () => {
                     )}
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button size="sm" variant="outline" className="border-rose-500 text-rose-600 hover:bg-rose-50">
+                    <Button size="sm" variant="outline" className="border-baby-pink-500 text-baby-pink-600 hover:bg-baby-pink-50" onClick={() => onAddToWishlist && onAddToWishlist(product._id || product.id)}>
                       <Heart className="w-4 h-4 mr-1" />
                       Wishlist
                     </Button>
                     <Button 
                       size="sm" 
-                      onClick={(e) => handleAddToCart(product._id || product.id, e)}
+                      onClick={(e) => onAddToCart && onAddToCart(product._id || product.id, e)}
                       disabled={product.stockQuantity === 0 || addToCartMutation.isPending}
-                      className="bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white"
+                      className="bg-gradient-to-r from-baby-pink-500 to-baby-pink-600 hover:from-baby-pink-600 hover:to-baby-pink-700 text-white"
                     >
                       <ShoppingCart className="w-4 h-4 mr-1" />
                       {addToCartMutation.isPending ? 'Adding...' : product.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
@@ -272,12 +288,12 @@ const ProductCatalog: React.FC = () => {
     return (
       <Card 
         className="product-card group overflow-hidden fade-in-up"
-        onMouseEnter={() => setHoveredProduct(product._id || product.id)}
-        onMouseLeave={() => setHoveredProduct(null)}
+        onMouseEnter={() => setHoveredProduct && setHoveredProduct(product._id || product.id)}
+        onMouseLeave={() => setHoveredProduct && setHoveredProduct(null)}
       >
         <CardContent className="p-0">
           <div className="relative">
-            <div className="h-64 bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center overflow-hidden">
+            <div className="h-64 bg-gradient-to-br from-baby-pink-100 to-baby-pink-200 flex items-center justify-center overflow-hidden">
               {product.images?.[0] ? (
                 <img 
                   src={`${process.env.REACT_APP_API_URL}${product.images[0]}`}
@@ -292,10 +308,10 @@ const ProductCatalog: React.FC = () => {
                 />
               ) : null}
               <div className="text-center w-full h-full flex flex-col items-center justify-center" style={{ display: product.images?.[0] ? 'none' : 'flex' }}>
-                <div className="w-16 h-16 bg-gradient-to-br from-rose-400 to-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-premium">
-                  <Sparkles className="w-8 h-8 text-hmh-black-900" />
+                <div className="w-16 h-16 bg-gradient-to-br from-baby-pink-400 to-baby-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-premium">
+                  <Sparkles className="w-8 h-8 text-commando-green-900" />
                 </div>
-                <span className="text-hmh-black-600 text-sm font-bold">No Image Available</span>
+                <span className="text-commando-green-600 text-sm font-bold">No Image Available</span>
               </div>
             </div>
             {product.salePrice && (
@@ -319,9 +335,9 @@ const ProductCatalog: React.FC = () => {
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
               <Button 
                 size="sm" 
-                onClick={(e) => handleAddToCart(product._id || product.id, e)}
+                onClick={(e) => onAddToCart && onAddToCart(product._id || product.id, e)}
                 disabled={product.stockQuantity === 0 || addToCartMutation.isPending}
-                className="bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-hmh-black-900 shadow-premium"
+                className="bg-gradient-to-r from-baby-pink-500 to-baby-pink-600 hover:from-baby-pink-600 hover:to-baby-pink-700 text-commando-green-900 shadow-premium"
               >
                 <ShoppingCart className="w-4 h-4 mr-1" />
                 {addToCartMutation.isPending ? 'Adding...' : product.stockQuantity === 0 ? 'Out of Stock' : 'Quick Add'}
@@ -329,7 +345,7 @@ const ProductCatalog: React.FC = () => {
             </div>
           </div>
           <div className="p-6">
-            <h3 className="font-bold text-lg mb-3 text-hmh-black-900 line-clamp-2 group-hover:text-rose-600 transition-colors duration-300">
+            <h3 className="font-bold text-lg mb-3 text-commando-green-900 line-clamp-2 group-hover:text-commando-green-700 transition-colors duration-300">
               {product.name}
             </h3>
             <div className="flex items-center justify-between mb-3">
@@ -344,23 +360,23 @@ const ProductCatalog: React.FC = () => {
                     </span>
                   </>
                 ) : (
-                  <span className="text-xl font-black text-hmh-black-900">
+                  <span className="text-xl font-black text-commando-green-900">
                     {formatPrice(product.price)}
                   </span>
                 )}
               </div>
               <div className="flex items-center space-x-1">
-                <Star className="w-4 h-4 text-rose-500 fill-current" />
-                <span className="text-sm font-bold text-hmh-black-700">
+                <Star className="w-4 h-4 text-baby-pink-500 fill-current" />
+                <span className="text-sm font-bold text-commando-green-700">
                   {typeof product.averageRating === 'number' ? product.averageRating.toFixed(1) : '0.0'}
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-hmh-black-600 uppercase tracking-wider font-bold">
+              <span className="text-xs text-commando-green-600 uppercase tracking-wider font-bold">
                 {product.stockQuantity > 0 ? 'In Stock' : 'Out of Stock'}
               </span>
-              <ArrowRight className="w-4 h-4 text-rose-600 group-hover:translate-x-1 transition-transform duration-300" />
+              <ArrowRight className="w-4 h-4 text-baby-pink-600 group-hover:translate-x-1 transition-transform duration-300" />
             </div>
           </div>
         </CardContent>
@@ -659,7 +675,7 @@ const ProductCatalog: React.FC = () => {
         )}
 
         {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
+        {pagination && pagination.pages > 1 && (
           <div className="mt-12 flex justify-center">
             <div className="flex items-center space-x-2">
               <Button
@@ -671,7 +687,7 @@ const ProductCatalog: React.FC = () => {
                 Previous
               </Button>
               
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
                 const pageNum = i + 1
                 return (
                   <Button
@@ -691,8 +707,8 @@ const ProductCatalog: React.FC = () => {
               
               <Button
                 variant="outline"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages))}
-                disabled={currentPage === pagination.totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.pages))}
+                disabled={currentPage === pagination.pages}
                 className="border-commando-green-200 text-commando-green-700 hover:bg-commando-green-50 hover:border-commando-green-300 rounded-full px-4 py-2 transition-all duration-300 disabled:opacity-50"
               >
                 Next

@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
 import { CreditCardIcon, TruckIcon, ShieldCheckIcon, ArrowLeftIcon, CheckCircleIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { CheckoutRequest } from '../types'
-import { checkoutSchema, CheckoutFormData } from '../lib/validations'
+import { checkoutSchema } from '../lib/validations'
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 

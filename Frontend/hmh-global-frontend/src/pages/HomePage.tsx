@@ -23,9 +23,10 @@ const HomePage: React.FC = () => {
   // Simple hero slider
   // Images served from public/carousels (no import outside src)
   const images = [
-    '/carousels/11754429_4820655.jpg',
-    '/carousels/33315686_8032564.jpg',
-    '/carousels/419730237_11736534.jpg',
+    '/carousels/1.png',
+    '/carousels/2.png',
+    '/carousels/3.png',
+    '/carousels/4.png',
   ]
   const [currentSlide, setCurrentSlide] = React.useState(0)
   React.useEffect(() => {
@@ -172,14 +173,25 @@ const HomePage: React.FC = () => {
                   <Card className="product-card group h-full">
                     <CardContent className="p-6">
                       <div className="relative mb-4 overflow-hidden rounded-xl">
-                        <img
-                          src={`${API_BASE_URL}/uploads/${product.images?.[0]}`}
-                          alt={product.name}
-                          className="product-image w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
-                        {product.discount && (
+                        {(() => {
+                          const first = product.images?.[0] as unknown as string | undefined;
+                          const src = first
+                            ? (first.startsWith('http')
+                                ? first
+                                : `${API_BASE_URL}${first.startsWith('/') ? '' : '/'}${first}`)
+                            : '';
+                          return (
+                            <img
+                              src={src}
+                              alt={product.name}
+                              className="product-image w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          );
+                        })()}
+                        {typeof product.salePrice === 'number' && product.salePrice < product.price && (
                           <Badge className="absolute top-2 right-2 bg-baby-pink-500 text-white border-0">
-                            -{product.discount}%
+                            -{Math.round((1 - product.salePrice / product.price) * 100)}%
                           </Badge>
                         )}
                       </div>
@@ -192,7 +204,7 @@ const HomePage: React.FC = () => {
                             <Star
                               key={i}
                               className={`w-4 h-4 ${
-                                i < (product.rating || 0)
+                                i < (product.averageRating || 0)
                                   ? 'text-yellow-400 fill-current'
                                   : 'text-gray-300'
                               }`}

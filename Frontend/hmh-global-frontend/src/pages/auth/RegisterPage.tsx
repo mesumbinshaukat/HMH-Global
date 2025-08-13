@@ -64,18 +64,18 @@ const RegisterPage: React.FC = () => {
         <meta name="description" content="Create your HMH Global account" />
       </Helmet>
       
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-rose-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-baby-pink-50 via-white to-baby-pink-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         {/* Background decorative elements */}
         <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-rose-200/20 to-transparent"></div>
-          <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-rose-300/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-rose-400/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-baby-pink-200/20 to-transparent"></div>
+          <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-baby-pink-300/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-baby-pink-400/5 rounded-full blur-3xl"></div>
         </div>
 
         <Card className="w-full max-w-lg shadow-premium border-0 bg-white/95 backdrop-blur-sm relative z-10">
           <CardHeader className="text-center pb-8 pt-8">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-rose-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-premium">
+              <div className="w-16 h-16 bg-gradient-to-r from-baby-pink-500 to-baby-pink-600 rounded-2xl flex items-center justify-center shadow-premium">
                 <UserPlus className="w-8 h-8 text-hmh-black-900" />
               </div>
             </div>
@@ -90,7 +90,7 @@ const RegisterPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName" className="text-sm font-bold text-hmh-black-900 flex items-center">
-                    <User className="w-4 h-4 mr-2 text-rose-600" />
+                    <User className="w-4 h-4 mr-2 text-baby-pink-600" />
                     First Name
                   </Label>
                   <Input
@@ -98,7 +98,7 @@ const RegisterPage: React.FC = () => {
                     type="text"
                     placeholder="John"
                     {...form.register('firstName')}
-                    className={`border-gray-200 focus:border-rose-500 focus:ring-rose-500 h-12 ${form.formState.errors.firstName ? 'border-red-500' : ''}`}
+                    className={`border-commando-green-200 focus:border-baby-pink-500 focus:ring-baby-pink-200 h-12 ${form.formState.errors.firstName ? 'border-red-500' : ''}`}
                   />
                   {form.formState.errors.firstName && (
                     <p className="text-red-500 text-sm flex items-center">
@@ -110,7 +110,7 @@ const RegisterPage: React.FC = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="lastName" className="text-sm font-bold text-hmh-black-900 flex items-center">
-                    <User className="w-4 h-4 mr-2 text-rose-600" />
+                    <User className="w-4 h-4 mr-2 text-baby-pink-600" />
                     Last Name
                   </Label>
                   <Input
@@ -118,7 +118,7 @@ const RegisterPage: React.FC = () => {
                     type="text"
                     placeholder="Doe"
                     {...form.register('lastName')}
-                    className={`border-gray-200 focus:border-rose-500 focus:ring-rose-500 h-12 ${form.formState.errors.lastName ? 'border-red-500' : ''}`}
+                    className={`border-commando-green-200 focus:border-baby-pink-500 focus:ring-baby-pink-200 h-12 ${form.formState.errors.lastName ? 'border-red-500' : ''}`}
                   />
                   {form.formState.errors.lastName && (
                     <p className="text-red-500 text-sm flex items-center">
@@ -131,7 +131,7 @@ const RegisterPage: React.FC = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-bold text-hmh-black-900 flex items-center">
-                  <Mail className="w-4 h-4 mr-2 text-rose-600" />
+                  <Mail className="w-4 h-4 mr-2 text-baby-pink-600" />
                   Email Address
                 </Label>
                 <Input
@@ -139,7 +139,7 @@ const RegisterPage: React.FC = () => {
                   type="email"
                   placeholder="john@example.com"
                   {...form.register('email')}
-                  className={`border-gray-200 focus:border-rose-500 focus:ring-rose-500 h-12 ${form.formState.errors.email ? 'border-red-500' : ''}`}
+                  className={`border-commando-green-200 focus:border-baby-pink-500 focus:ring-baby-pink-200 h-12 ${form.formState.errors.email ? 'border-red-500' : ''}`}
                 />
                 {form.formState.errors.email && (
                   <p className="text-red-500 text-sm flex items-center">
@@ -151,7 +151,7 @@ const RegisterPage: React.FC = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-bold text-hmh-black-900 flex items-center">
-                  <Lock className="w-4 h-4 mr-2 text-rose-600" />
+                  <Lock className="w-4 h-4 mr-2 text-baby-pink-600" />
                   Password
                 </Label>
                 <div className="relative">
@@ -160,11 +160,11 @@ const RegisterPage: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Create a strong password"
                     {...form.register('password')}
-                    className={`border-gray-200 focus:border-rose-500 focus:ring-rose-500 h-12 pr-12 ${form.formState.errors.password ? 'border-red-500' : ''}`}
+                    className={`border-commando-green-200 focus:border-baby-pink-500 focus:ring-baby-pink-200 h-12 pr-12 ${form.formState.errors.password ? 'border-red-500' : ''}`}
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-rose-600 hover:text-rose-700 transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-baby-pink-600 hover:text-baby-pink-700 transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -180,7 +180,7 @@ const RegisterPage: React.FC = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="text-sm font-bold text-hmh-black-900 flex items-center">
-                  <Shield className="w-4 h-4 mr-2 text-rose-600" />
+                  <Shield className="w-4 h-4 mr-2 text-baby-pink-600" />
                   Confirm Password
                 </Label>
                 <div className="relative">
@@ -189,11 +189,11 @@ const RegisterPage: React.FC = () => {
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="Confirm your password"
                     {...form.register('confirmPassword')}
-                    className={`border-gray-200 focus:border-rose-500 focus:ring-rose-500 h-12 pr-12 ${form.formState.errors.confirmPassword ? 'border-red-500' : ''}`}
+                    className={`border-commando-green-200 focus:border-baby-pink-500 focus:ring-baby-pink-200 h-12 pr-12 ${form.formState.errors.confirmPassword ? 'border-red-500' : ''}`}
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-rose-600 hover:text-rose-700 transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-baby-pink-600 hover:text-baby-pink-700 transition-colors"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -214,15 +214,15 @@ const RegisterPage: React.FC = () => {
                     id="acceptTerms" 
                     checked={acceptTerms}
                     onCheckedChange={(checked) => setAcceptTerms(checked === true)}
-                    className="mt-0.5 border-rose-500 data-[state=checked]:bg-rose-500"
+                    className="mt-0.5 border-baby-pink-500 data-[state=checked]:bg-baby-pink-500"
                   />
                   <Label htmlFor="acceptTerms" className="text-sm text-hmh-black-700 leading-5">
                     I agree to the{' '}
-                    <Link to="/terms" className="text-rose-600 hover:text-rose-700 font-medium underline">
+                    <Link to="/terms" className="text-baby-pink-600 hover:text-baby-pink-700 font-medium underline">
                       Terms of Service
                     </Link>
                     {' '}and{' '}
-                    <Link to="/privacy" className="text-rose-600 hover:text-rose-700 font-medium underline">
+                    <Link to="/privacy" className="text-baby-pink-600 hover:text-baby-pink-700 font-medium underline">
                       Privacy Policy
                     </Link>
                   </Label>
@@ -233,7 +233,7 @@ const RegisterPage: React.FC = () => {
                     id="subscribeMail" 
                     checked={subscribeMail}
                     onCheckedChange={(checked) => setSubscribeMail(checked === true)}
-                    className="mt-0.5 border-rose-500 data-[state=checked]:bg-rose-500"
+                    className="mt-0.5 border-baby-pink-500 data-[state=checked]:bg-baby-pink-500"
                   />
                   <Label htmlFor="subscribeMail" className="text-sm text-hmh-black-700 leading-5">
                     Subscribe to our newsletter for exclusive offers and updates
@@ -243,7 +243,7 @@ const RegisterPage: React.FC = () => {
               
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold text-lg shadow-premium transition-all duration-300 hover:scale-105 hover:shadow-xl" 
+                className="w-full h-12 bg-gradient-to-r from-baby-pink-500 to-baby-pink-600 hover:from-baby-pink-600 hover:to-baby-pink-700 text-white font-bold text-lg shadow-premium transition-all duration-300 hover:scale-105 hover:shadow-xl" 
                 disabled={isLoading || !acceptTerms}
               >
                 {isLoading ? (
@@ -303,7 +303,7 @@ const RegisterPage: React.FC = () => {
             <div className="mt-8 text-center">
               <p className="text-hmh-black-600">
                 Already have an account?{' '}
-                <Link to="/login" className="text-rose-600 hover:text-rose-700 font-bold transition-colors underline">
+                <Link to="/login" className="text-baby-pink-600 hover:text-baby-pink-700 font-bold transition-colors underline">
                   Sign in here
                 </Link>
               </p>
@@ -313,15 +313,15 @@ const RegisterPage: React.FC = () => {
             <div className="mt-8 pt-6 border-t border-gray-100">
               <div className="flex items-center justify-center space-x-6 text-xs text-hmh-black-500">
                 <div className="flex items-center">
-                  <Shield className="w-4 h-4 mr-1 text-rose-500" />
+                  <Shield className="w-4 h-4 mr-1 text-baby-pink-500" />
                   Secure
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle2 className="w-4 h-4 mr-1 text-rose-500" />
+                  <CheckCircle2 className="w-4 h-4 mr-1 text-baby-pink-500" />
                   Verified
                 </div>
                 <div className="flex items-center">
-                  <Sparkles className="w-4 h-4 mr-1 text-rose-500" />
+                  <Sparkles className="w-4 h-4 mr-1 text-baby-pink-500" />
                   Premium
                 </div>
               </div>
