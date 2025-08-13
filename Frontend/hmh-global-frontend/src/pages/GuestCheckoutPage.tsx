@@ -1,10 +1,6 @@
 import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate, useLocation } from 'react-router-dom'
-// import { orderService } from '../services/orders'
 import { useCartStore } from '../store'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -16,42 +12,42 @@ import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
 import { CreditCardIcon, TruckIcon, ShieldCheckIcon, ArrowLeftIcon, CheckCircleIcon, UserIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
-// Guest checkout schema
-const guestCheckoutSchema = z.object({
-  guestInfo: z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Invalid email address'),
-    phone: z.string().optional(),
-  }),
-  paymentMethod: z.string().default('cash-on-delivery'),
-  shippingAddress: z.object({
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    company: z.string().optional(),
-    address1: z.string().min(1, 'Address is required'),
-    address2: z.string().optional(),
-    city: z.string().min(1, 'City is required'),
-    state: z.string().min(1, 'State is required'),
-    zipCode: z.string().min(1, 'ZIP code is required'),
-    country: z.string().min(1, 'Country is required'),
-    phone: z.string().optional(),
-  }),
-  billingAddress: z.object({
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    company: z.string().optional(),
-    address1: z.string().min(1, 'Address is required'),
-    address2: z.string().optional(),
-    city: z.string().min(1, 'City is required'),
-    state: z.string().min(1, 'State is required'),
-    zipCode: z.string().min(1, 'ZIP code is required'),
-    country: z.string().min(1, 'Country is required'),
-    phone: z.string().optional(),
-  }),
-  sameAsShipping: z.boolean(),
-})
-
-type GuestCheckoutFormData = z.infer<typeof guestCheckoutSchema>
+// Form data interface
+interface GuestFormData {
+  // Guest Info
+  guestName: string
+  guestEmail: string
+  guestPhone: string
+  
+  // Payment
+  paymentMethod: string
+  
+  // Shipping Address
+  shippingFirstName: string
+  shippingLastName: string
+  shippingCompany: string
+  shippingAddress1: string
+  shippingAddress2: string
+  shippingCity: string
+  shippingState: string
+  shippingZipCode: string
+  shippingCountry: string
+  shippingPhone: string
+  
+  // Billing Address
+  billingFirstName: string
+  billingLastName: string
+  billingCompany: string
+  billingAddress1: string
+  billingAddress2: string
+  billingCity: string
+  billingState: string
+  billingZipCode: string
+  billingCountry: string
+  billingPhone: string
+  
+  sameAsShipping: boolean
+}
 
 const GuestCheckoutPage: React.FC = () => {
   const navigate = useNavigate()
@@ -61,24 +57,37 @@ const GuestCheckoutPage: React.FC = () => {
   const [sameAsShipping, setSameAsShipping] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Get cart items from location state or cart store
-  const cartItems = location.state?.cartItems || cart?.items || []
-
-  const { register, handleSubmit, formState: { errors }, watch, setValue, getValues } = useForm<GuestCheckoutFormData>({
-    resolver: zodResolver(guestCheckoutSchema),
-    defaultValues: {
-      paymentMethod: 'cash-on-delivery',
-      sameAsShipping: false,
-      shippingAddress: {
-        country: 'GB',
-      },
-      billingAddress: {
-        country: 'GB',
-      },
-    },
+  // Form state
+  const [formData, setFormData] = useState<GuestFormData>({
+    guestName: '',
+    guestEmail: '',
+    guestPhone: '',
+    paymentMethod: 'cash-on-delivery',
+    shippingFirstName: '',
+    shippingLastName: '',
+    shippingCompany: '',
+    shippingAddress1: '',
+    shippingAddress2: '',
+    shippingCity: '',
+    shippingState: '',
+    shippingZipCode: '',
+    shippingCountry: 'GB',
+    shippingPhone: '',
+    billingFirstName: '',
+    billingLastName: '',
+    billingCompany: '',
+    billingAddress1: '',
+    billingAddress2: '',
+    billingCity: '',
+    billingState: '',
+    billingZipCode: '',
+    billingCountry: 'GB',
+    billingPhone: '',
+    sameAsShipping: false
   })
 
-  const paymentMethod = watch('paymentMethod')
+  // Get cart items from location state or cart store
+  const cartItems = location.state?.cartItems || cart?.items || []
 
   // Place guest order mutation
   const placeGuestOrderMutation = useMutation({
@@ -100,11 +109,10 @@ const GuestCheckoutPage: React.FC = () => {
     onSuccess: (response) => {
       clearCart()
       toast.success('Order placed successfully!')
-      // Navigate to a success page or show order details
       navigate('/order-success', { 
         state: { 
           orderNumber: response.data.orderNumber,
-          email: getValues('guestInfo.email')
+          email: formData.guestEmail
         }
       })
     },
@@ -117,34 +125,113 @@ const GuestCheckoutPage: React.FC = () => {
   // Calculate totals
   const subtotal = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
   const tax = subtotal * 0.20 // 20% VAT
-  const shipping = paymentMethod === 'cash-on-delivery' ? 
+  const shipping = formData.paymentMethod === 'cash-on-delivery' ? 
     (subtotal > 50 ? 2.99 : 7.99) : // COD fee
     (subtotal > 50 ? 0 : 5.99)      // Regular shipping
   const total = subtotal + tax + shipping
 
-  const handleSameAsShippingChange = (checked: boolean) => {
-    setSameAsShipping(checked)
-    setValue('sameAsShipping', checked)
-    
-    if (checked) {
-      const shippingData = getValues('shippingAddress')
-      setValue('billingAddress', shippingData)
-    }
+  // Handle form input changes
+  const handleInputChange = (field: keyof GuestFormData, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
-  const onSubmit = (data: GuestCheckoutFormData) => {
+  // Handle same as shipping checkbox
+  const handleSameAsShippingChange = (checked: boolean) => {
+    setSameAsShipping(checked)
+    setFormData(prev => ({
+      ...prev,
+      sameAsShipping: checked,
+      ...(checked ? {
+        billingFirstName: prev.shippingFirstName,
+        billingLastName: prev.shippingLastName,
+        billingCompany: prev.shippingCompany,
+        billingAddress1: prev.shippingAddress1,
+        billingAddress2: prev.shippingAddress2,
+        billingCity: prev.shippingCity,
+        billingState: prev.shippingState,
+        billingZipCode: prev.shippingZipCode,
+        billingCountry: prev.shippingCountry,
+        billingPhone: prev.shippingPhone
+      } : {})
+    }))
+  }
+
+  // Form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
     if (cartItems.length === 0) {
       toast.error('Your cart is empty')
+      return
+    }
+
+    // Basic validation
+    if (!formData.guestName || !formData.guestEmail) {
+      toast.error('Please fill in required fields')
+      return
+    }
+
+    if (!formData.shippingFirstName || !formData.shippingLastName || 
+        !formData.shippingAddress1 || !formData.shippingCity || 
+        !formData.shippingState || !formData.shippingZipCode) {
+      toast.error('Please fill in shipping address')
+      return
+    }
+
+    if (!sameAsShipping && (!formData.billingFirstName || !formData.billingLastName || 
+        !formData.billingAddress1 || !formData.billingCity || 
+        !formData.billingState || !formData.billingZipCode)) {
+      toast.error('Please fill in billing address')
       return
     }
 
     setIsProcessing(true)
     
     const orderData = {
-      guestInfo: data.guestInfo,
-      paymentMethod: data.paymentMethod,
-      shippingAddress: data.shippingAddress,
-      billingAddress: data.sameAsShipping ? data.shippingAddress : data.billingAddress,
+      guestInfo: {
+        name: formData.guestName,
+        email: formData.guestEmail,
+        phone: formData.guestPhone
+      },
+      paymentMethod: formData.paymentMethod,
+      shippingAddress: {
+        firstName: formData.shippingFirstName,
+        lastName: formData.shippingLastName,
+        company: formData.shippingCompany,
+        address1: formData.shippingAddress1,
+        address2: formData.shippingAddress2,
+        city: formData.shippingCity,
+        state: formData.shippingState,
+        zipCode: formData.shippingZipCode,
+        country: formData.shippingCountry,
+        phone: formData.shippingPhone
+      },
+      billingAddress: sameAsShipping ? {
+        firstName: formData.shippingFirstName,
+        lastName: formData.shippingLastName,
+        company: formData.shippingCompany,
+        address1: formData.shippingAddress1,
+        address2: formData.shippingAddress2,
+        city: formData.shippingCity,
+        state: formData.shippingState,
+        zipCode: formData.shippingZipCode,
+        country: formData.shippingCountry,
+        phone: formData.shippingPhone
+      } : {
+        firstName: formData.billingFirstName,
+        lastName: formData.billingLastName,
+        company: formData.billingCompany,
+        address1: formData.billingAddress1,
+        address2: formData.billingAddress2,
+        city: formData.billingCity,
+        state: formData.billingState,
+        zipCode: formData.billingZipCode,
+        country: formData.billingCountry,
+        phone: formData.billingPhone
+      },
       items: cartItems.map((item: any) => ({
         productId: item.product?._id || item.productId,
         quantity: item.quantity
@@ -231,7 +318,7 @@ const GuestCheckoutPage: React.FC = () => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2">
@@ -248,27 +335,30 @@ const GuestCheckoutPage: React.FC = () => {
                     <div>
                       <Label htmlFor="guestInfo.name">Full Name *</Label>
                       <Input
-                        id="guestInfo.name"
-                        {...register('guestInfo.name')}
-                        error={errors.guestInfo?.name?.message}
+                        id="guestName"
+                        value={formData.guestName}
+                        onChange={(e) => handleInputChange('guestName', e.target.value)}
                         placeholder="John Doe"
+                        required
                       />
                     </div>
                     <div>
                       <Label htmlFor="guestInfo.email">Email Address *</Label>
                       <Input
-                        id="guestInfo.email"
+                        id="guestEmail"
                         type="email"
-                        {...register('guestInfo.email')}
-                        error={errors.guestInfo?.email?.message}
+                        value={formData.guestEmail}
+                        onChange={(e) => handleInputChange('guestEmail', e.target.value)}
                         placeholder="john@example.com"
+                        required
                       />
                     </div>
                     <div>
                       <Label htmlFor="guestInfo.phone">Phone Number (Optional)</Label>
                       <Input
-                        id="guestInfo.phone"
-                        {...register('guestInfo.phone')}
+                        id="guestPhone"
+                        value={formData.guestPhone}
+                        onChange={(e) => handleInputChange('guestPhone', e.target.value)}
                         placeholder="+44 123 456 7890"
                       />
                     </div>
@@ -296,17 +386,19 @@ const GuestCheckoutPage: React.FC = () => {
                       <div>
                         <Label htmlFor="shippingAddress.firstName">First Name *</Label>
                         <Input
-                          id="shippingAddress.firstName"
-                          {...register('shippingAddress.firstName')}
-                          error={errors.shippingAddress?.firstName?.message}
+                          id="shippingFirstName"
+                          value={formData.shippingFirstName}
+                          onChange={(e) => handleInputChange('shippingFirstName', e.target.value)}
+                          required
                         />
                       </div>
                       <div>
                         <Label htmlFor="shippingAddress.lastName">Last Name *</Label>
                         <Input
-                          id="shippingAddress.lastName"
-                          {...register('shippingAddress.lastName')}
-                          error={errors.shippingAddress?.lastName?.message}
+                          id="shippingLastName"
+                          value={formData.shippingLastName}
+                          onChange={(e) => handleInputChange('shippingLastName', e.target.value)}
+                          required
                         />
                       </div>
                     </div>
@@ -314,25 +406,28 @@ const GuestCheckoutPage: React.FC = () => {
                     <div>
                       <Label htmlFor="shippingAddress.company">Company (Optional)</Label>
                       <Input
-                        id="shippingAddress.company"
-                        {...register('shippingAddress.company')}
+                        id="shippingCompany"
+                        value={formData.shippingCompany}
+                        onChange={(e) => handleInputChange('shippingCompany', e.target.value)}
                       />
                     </div>
                     
                     <div>
                       <Label htmlFor="shippingAddress.address1">Address Line 1 *</Label>
                       <Input
-                        id="shippingAddress.address1"
-                        {...register('shippingAddress.address1')}
-                        error={errors.shippingAddress?.address1?.message}
+                        id="shippingAddress1"
+                        value={formData.shippingAddress1}
+                        onChange={(e) => handleInputChange('shippingAddress1', e.target.value)}
+                        required
                       />
                     </div>
                     
                     <div>
                       <Label htmlFor="shippingAddress.address2">Address Line 2 (Optional)</Label>
                       <Input
-                        id="shippingAddress.address2"
-                        {...register('shippingAddress.address2')}
+                        id="shippingAddress2"
+                        value={formData.shippingAddress2}
+                        onChange={(e) => handleInputChange('shippingAddress2', e.target.value)}
                       />
                     </div>
                     
@@ -340,25 +435,28 @@ const GuestCheckoutPage: React.FC = () => {
                       <div>
                         <Label htmlFor="shippingAddress.city">City *</Label>
                         <Input
-                          id="shippingAddress.city"
-                          {...register('shippingAddress.city')}
-                          error={errors.shippingAddress?.city?.message}
+                          id="shippingCity"
+                          value={formData.shippingCity}
+                          onChange={(e) => handleInputChange('shippingCity', e.target.value)}
+                          required
                         />
                       </div>
                       <div>
                         <Label htmlFor="shippingAddress.state">State/County *</Label>
                         <Input
-                          id="shippingAddress.state"
-                          {...register('shippingAddress.state')}
-                          error={errors.shippingAddress?.state?.message}
+                          id="shippingState"
+                          value={formData.shippingState}
+                          onChange={(e) => handleInputChange('shippingState', e.target.value)}
+                          required
                         />
                       </div>
                       <div>
                         <Label htmlFor="shippingAddress.zipCode">Postal Code *</Label>
                         <Input
-                          id="shippingAddress.zipCode"
-                          {...register('shippingAddress.zipCode')}
-                          error={errors.shippingAddress?.zipCode?.message}
+                          id="shippingZipCode"
+                          value={formData.shippingZipCode}
+                          onChange={(e) => handleInputChange('shippingZipCode', e.target.value)}
+                          required
                         />
                       </div>
                     </div>
@@ -366,7 +464,7 @@ const GuestCheckoutPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="shippingAddress.country">Country *</Label>
-                        <Select value={watch('shippingAddress.country')} onValueChange={(value) => setValue('shippingAddress.country', value)}>
+                        <Select value={formData.shippingCountry} onValueChange={(value) => handleInputChange('shippingCountry', value)}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select country" />
                           </SelectTrigger>
@@ -383,8 +481,9 @@ const GuestCheckoutPage: React.FC = () => {
                       <div>
                         <Label htmlFor="shippingAddress.phone">Phone (Optional)</Label>
                         <Input
-                          id="shippingAddress.phone"
-                          {...register('shippingAddress.phone')}
+                          id="shippingPhone"
+                          value={formData.shippingPhone}
+                          onChange={(e) => handleInputChange('shippingPhone', e.target.value)}
                         />
                       </div>
                     </div>
@@ -412,7 +511,7 @@ const GuestCheckoutPage: React.FC = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <RadioGroup value={paymentMethod} onValueChange={(value: any) => setValue('paymentMethod', value)}>
+                      <RadioGroup value={formData.paymentMethod} onValueChange={(value) => handleInputChange('paymentMethod', value)}>
                         <div className="flex items-center space-x-2 p-4 border rounded-lg">
                           <RadioGroupItem value="cash-on-delivery" id="cod" />
                           <Label htmlFor="cod" className="flex items-center space-x-2 cursor-pointer flex-1">
@@ -460,17 +559,19 @@ const GuestCheckoutPage: React.FC = () => {
                             <div>
                               <Label htmlFor="billingAddress.firstName">First Name *</Label>
                               <Input
-                                id="billingAddress.firstName"
-                                {...register('billingAddress.firstName')}
-                                error={errors.billingAddress?.firstName?.message}
+                                id="billingFirstName"
+                                value={formData.billingFirstName}
+                                onChange={(e) => handleInputChange('billingFirstName', e.target.value)}
+                                required={!sameAsShipping}
                               />
                             </div>
                             <div>
                               <Label htmlFor="billingAddress.lastName">Last Name *</Label>
                               <Input
-                                id="billingAddress.lastName"
-                                {...register('billingAddress.lastName')}
-                                error={errors.billingAddress?.lastName?.message}
+                                id="billingLastName"
+                                value={formData.billingLastName}
+                                onChange={(e) => handleInputChange('billingLastName', e.target.value)}
+                                required={!sameAsShipping}
                               />
                             </div>
                           </div>
@@ -478,9 +579,10 @@ const GuestCheckoutPage: React.FC = () => {
                           <div>
                             <Label htmlFor="billingAddress.address1">Address Line 1 *</Label>
                             <Input
-                              id="billingAddress.address1"
-                              {...register('billingAddress.address1')}
-                              error={errors.billingAddress?.address1?.message}
+                              id="billingAddress1"
+                              value={formData.billingAddress1}
+                              onChange={(e) => handleInputChange('billingAddress1', e.target.value)}
+                              required={!sameAsShipping}
                             />
                           </div>
                           
@@ -488,25 +590,28 @@ const GuestCheckoutPage: React.FC = () => {
                             <div>
                               <Label htmlFor="billingAddress.city">City *</Label>
                               <Input
-                                id="billingAddress.city"
-                                {...register('billingAddress.city')}
-                                error={errors.billingAddress?.city?.message}
+                                id="billingCity"
+                                value={formData.billingCity}
+                                onChange={(e) => handleInputChange('billingCity', e.target.value)}
+                                required={!sameAsShipping}
                               />
                             </div>
                             <div>
                               <Label htmlFor="billingAddress.state">State/County *</Label>
                               <Input
-                                id="billingAddress.state"
-                                {...register('billingAddress.state')}
-                                error={errors.billingAddress?.state?.message}
+                                id="billingState"
+                                value={formData.billingState}
+                                onChange={(e) => handleInputChange('billingState', e.target.value)}
+                                required={!sameAsShipping}
                               />
                             </div>
                             <div>
                               <Label htmlFor="billingAddress.zipCode">Postal Code *</Label>
                               <Input
-                                id="billingAddress.zipCode"
-                                {...register('billingAddress.zipCode')}
-                                error={errors.billingAddress?.zipCode?.message}
+                                id="billingZipCode"
+                                value={formData.billingZipCode}
+                                onChange={(e) => handleInputChange('billingZipCode', e.target.value)}
+                                required={!sameAsShipping}
                               />
                             </div>
                           </div>
@@ -539,23 +644,23 @@ const GuestCheckoutPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                       <div>
                         <h4 className="font-semibold mb-2">Contact Information</h4>
-                        <p>{watch('guestInfo.name')}</p>
-                        <p>{watch('guestInfo.email')}</p>
-                        {watch('guestInfo.phone') && <p>{watch('guestInfo.phone')}</p>}
+                        <p>{formData.guestName}</p>
+                        <p>{formData.guestEmail}</p>
+                        {formData.guestPhone && <p>{formData.guestPhone}</p>}
                       </div>
                       <div>
                         <h4 className="font-semibold mb-2">Shipping Address</h4>
-                        <p>{watch('shippingAddress.firstName')} {watch('shippingAddress.lastName')}</p>
-                        <p>{watch('shippingAddress.address1')}</p>
-                        {watch('shippingAddress.address2') && <p>{watch('shippingAddress.address2')}</p>}
-                        <p>{watch('shippingAddress.city')}, {watch('shippingAddress.state')} {watch('shippingAddress.zipCode')}</p>
+                        <p>{formData.shippingFirstName} {formData.shippingLastName}</p>
+                        <p>{formData.shippingAddress1}</p>
+                        {formData.shippingAddress2 && <p>{formData.shippingAddress2}</p>}
+                        <p>{formData.shippingCity}, {formData.shippingState} {formData.shippingZipCode}</p>
                       </div>
                     </div>
                     
                     <div>
                       <h4 className="font-semibold mb-2">Payment Method</h4>
                       <p className="text-sm">
-                        {paymentMethod === 'cash-on-delivery' ? 'Cash on Delivery (COD)' : paymentMethod.replace('-', ' ').toUpperCase()}
+                        {formData.paymentMethod === 'cash-on-delivery' ? 'Cash on Delivery (COD)' : formData.paymentMethod.replace('-', ' ').toUpperCase()}
                       </p>
                     </div>
 
