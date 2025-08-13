@@ -3,15 +3,31 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOSTNAME,
-    port: process.env.SMTP_PORT,
-    secure: true,
-    auth: {
-        user: process.env.SMTP_USER.replace(/'/g, ""),
-        pass: process.env.SMTP_PASS.replace(/'/g, "")
+// Create transporter lazily to avoid crashing the app when SMTP env is missing/invalid
+function createTransporterSafe() {
+    try {
+        const host = process.env.SMTP_HOSTNAME;
+        const portStr = process.env.SMTP_PORT;
+        const user = process.env.SMTP_USER ? process.env.SMTP_USER.replace(/'/g, '') : undefined;
+        const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/'/g, '') : undefined;
+
+        if (!host || !portStr || !user || !pass) {
+            return null; // Missing config, skip email silently
+        }
+        const port = Number(portStr);
+        const secure = port === 465; // only true for 465
+
+        return nodemailer.createTransport({
+            host,
+            port,
+            secure,
+            auth: { user, pass }
+        });
+    } catch (e) {
+        // Never throw from here; just disable emails
+        return null;
     }
-});
+}
 
 // Create review
 exports.createReview = async (req, res) => {
@@ -52,15 +68,19 @@ exports.createReview = async (req, res) => {
 
         await newReview.save();
 
-        // Send email notification
+        // Send email notification (non-fatal)
         try {
-            const user = await User.findById(req.user.userId);
-            await transporter.sendMail({
-                from: `"HMH Global" <${process.env.SMTP_USER.replace(/'/g, "")}>`,
-                to: user.email,
-                subject: "Thank you for your review!",
-                html: `<p>Dear ${user.name}, thank you for reviewing ${product.name}!</p>`
-            });
+            const tx = createTransporterSafe();
+            if (tx) {
+                const userDoc = await User.findById(req.user.userId);
+                const fromAddr = process.env.SMTP_USER ? process.env.SMTP_USER.replace(/'/g, '') : '';
+                await tx.sendMail({
+                    from: `"HMH Global" <${fromAddr}>`,
+                    to: userDoc?.email,
+                    subject: 'Thank you for your review!',
+                    html: `<p>Dear ${userDoc?.name || 'Customer'}, thank you for reviewing ${product.name}!</p>`
+                });
+            }
         } catch (emailError) {
             console.error('Failed to send review confirmation email:', emailError);
         }

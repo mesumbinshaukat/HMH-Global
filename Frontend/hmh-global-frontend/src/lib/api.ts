@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { toast } from 'sonner'
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'
 
 class ApiService {
   private instance: AxiosInstance

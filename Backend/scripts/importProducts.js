@@ -4,8 +4,11 @@ const path = require('path');
 const fs = require('fs-extra');
 const axios = require('axios');
 
-// Load environment variables from parent directory
-require('dotenv').config({ path: path.join(__dirname, '../.env.production') });
+// Load environment variables (prefer .env in dev, fallback to .env.production)
+const envPath = fs.existsSync(path.join(__dirname, '../.env'))
+  ? path.join(__dirname, '../.env')
+  : path.join(__dirname, '../.env.production')
+require('dotenv').config({ path: envPath });
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 

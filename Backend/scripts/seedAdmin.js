@@ -8,14 +8,19 @@ const User = require('../models/User');
 const seedSuperAdmin = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI, {
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    if (!uri) {
+      console.error('[seedAdmin] MONGO_URI not set in environment.');
+      process.exit(1);
+    }
+    await mongoose.connect(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
     console.log('Connected to MongoDB');
 
-    const adminEmail = 'admin@hmhglobal.co.uk';
+    const adminEmail = 'admin@hmhglobal.co.uk'.toLowerCase().trim();
     const tempPassword = 'TempPassword123!';
 
     // Check if super admin already exists
@@ -26,8 +31,7 @@ const seedSuperAdmin = async () => {
       
       // Update existing admin to ensure proper role and permissions
       existingAdmin.role = 'admin';
-      existingAdmin.isActive = true;
-      existingAdmin.isVerified = true;
+      existingAdmin.emailVerified = true;
       await existingAdmin.save();
       
       console.log('Super admin role updated successfully');
@@ -36,13 +40,11 @@ const seedSuperAdmin = async () => {
       const hashedPassword = await bcrypt.hash(tempPassword, 12);
       
       const superAdmin = new User({
-        firstName: 'Super',
-        lastName: 'Admin',
+        name: 'Super Admin',
         email: adminEmail,
         password: hashedPassword,
         role: 'admin',
-        isActive: true,
-        isVerified: true,
+        emailVerified: true,
         createdAt: new Date(),
         updatedAt: new Date()
       });

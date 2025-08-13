@@ -10,6 +10,7 @@ const {
     getProductsByCategory,
     getFeaturedProducts,
     searchProducts,
+    suggestProducts,
     updateInventory,
     getRelatedProducts
 } = require('../controllers/productController');
@@ -20,6 +21,7 @@ const roleMiddleware = require('../middleware/role');
 router.get('/', getAllProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/search', searchProducts);
+router.get('/suggest', suggestProducts);
 router.get('/category/:categoryId', getProductsByCategory);
 router.get('/slug/:slug', getProductBySlug);
 router.get('/:id', getProductById);

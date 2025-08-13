@@ -30,6 +30,10 @@ export const productService = {
     return api.get(`/api/products/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`)
   },
 
+  async suggestProducts(query: string): Promise<ApiResponse<Array<{ id: string; name: string; brand?: string; slug?: string; image?: string | null; price?: number }>>> {
+    return api.get(`/api/products/suggest?q=${encodeURIComponent(query)}`)
+  },
+
   async getProductsByCategory(categoryId: string, page = 1, limit = 12): Promise<ApiResponse<PaginatedResponse<Product>>> {
     return api.get(`/api/products/category/${categoryId}?page=${page}&limit=${limit}`)
   },

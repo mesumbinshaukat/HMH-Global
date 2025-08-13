@@ -722,7 +722,7 @@ const AdminDashboard: React.FC = () => {
             <Card>
               <CardHeader><CardTitle>Total Revenue</CardTitle></CardHeader>
               <CardContent className="text-3xl font-bold">
-                {loadingStats ? '...' : `$${stats?.revenue?.toLocaleString()}` ?? '-'}
+                {loadingStats ? '...' : `£${stats?.revenue?.toLocaleString()}` ?? '-'}
               </CardContent>
             </Card>
           </div>
@@ -920,7 +920,7 @@ const AdminDashboard: React.FC = () => {
                         <td className="px-4 py-2 font-medium">{product.name}</td>
                         <td className="px-4 py-2">{product.category?.name || '-'}</td>
                         <td className="px-4 py-2">{product.brand || '-'}</td>
-                        <td className="px-4 py-2">${product.salePrice ? <span className="text-red-600">{product.salePrice}</span> : product.price}</td>
+                        <td className="px-4 py-2">£{product.salePrice ? <span className="text-red-600">{product.salePrice}</span> : product.price}</td>
                         <td className="px-4 py-2">{product.stockQuantity}</td>
                         <td className="px-4 py-2">
                           {product.isActive ? <Badge variant="outline" className="text-green-700 border-green-400">Active</Badge> : <Badge variant="outline" className="text-red-700 border-red-400">Inactive</Badge>}
@@ -972,7 +972,7 @@ const AdminDashboard: React.FC = () => {
                         <td className="px-4 py-2"><img src={product.images[0] ? `${process.env.REACT_APP_API_URL}${product.images[0]}` : '/api/placeholder/60/60'} alt={product.name} className="w-12 h-12 object-cover rounded" /></td>
                         <td className="px-4 py-2 font-medium">{product.name}</td>
                         <td className="px-4 py-2">{product.category?.name || '-'}</td>
-                        <td className="px-4 py-2">${product.salePrice ? <span className="text-red-600">{product.salePrice}</span> : product.price}</td>
+                        <td className="px-4 py-2">£{product.salePrice ? <span className="text-red-600">{product.salePrice}</span> : product.price}</td>
                         <td className="px-4 py-2">{product.stockQuantity}</td>
                       </tr>
                     ))}
@@ -1354,7 +1354,7 @@ const AdminDashboard: React.FC = () => {
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="px-4 py-2">${order.total?.toFixed(2) ?? '-'}</td>
+                        <td className="px-4 py-2">£{order.total?.toFixed(2) ?? '-'}</td>
                         <td className="px-4 py-2">{new Date(order.createdAt).toLocaleString()}</td>
                         <td className="px-4 py-2">
                           <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(order); setShowOrderDetails(true); }}>View</Button>
@@ -1432,8 +1432,8 @@ const AdminDashboard: React.FC = () => {
                           <tr key={item.id}>
                             <td>{item.product?.name || item.name}</td>
                             <td className="text-center">{item.quantity}</td>
-                            <td>${item.price?.toFixed(2)}</td>
-                            <td>${(item.price * item.quantity).toFixed(2)}</td>
+                           <td>£{item.price?.toFixed(2)}</td>
+                           <td>£{(item.price * item.quantity).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1447,10 +1447,10 @@ const AdminDashboard: React.FC = () => {
                     <div>
                       <div className="font-semibold mb-1">Order Summary</div>
                       <div className="text-sm text-gray-700">
-                        Subtotal: ${selectedOrder.subtotal?.toFixed(2) ?? selectedOrder.pricing?.subtotal?.toFixed(2)}<br />
-                        Tax: ${selectedOrder.tax?.toFixed(2) ?? selectedOrder.pricing?.tax?.toFixed(2) ?? '0.00'}<br />
-                        Shipping: ${selectedOrder.shipping?.toFixed(2) ?? selectedOrder.pricing?.shipping?.toFixed(2) ?? '0.00'}<br />
-                        <span className="font-bold">Total: ${selectedOrder.total?.toFixed(2) ?? selectedOrder.pricing?.total?.toFixed(2)}</span>
+                       Subtotal: £{selectedOrder.subtotal?.toFixed(2) ?? selectedOrder.pricing?.subtotal?.toFixed(2)}<br />
+                       Tax: £{selectedOrder.tax?.toFixed(2) ?? selectedOrder.pricing?.tax?.toFixed(2) ?? '0.00'}<br />
+                       Shipping: £{selectedOrder.shipping?.toFixed(2) ?? selectedOrder.pricing?.shipping?.toFixed(2) ?? '0.00'}<br />
+                       <span className="font-bold">Total: £{selectedOrder.total?.toFixed(2) ?? selectedOrder.pricing?.total?.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

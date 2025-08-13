@@ -3,16 +3,6 @@ const Cart = require('../models/Cart');
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOSTNAME,
-    port: process.env.SMTP_PORT,
-    secure: true,
-    auth: {
-        user: process.env.SMTP_USER.replace(/'/g, ""),
-        pass: process.env.SMTP_PASS.replace(/'/g, "")
-    }
-});
-
 // Create order
 exports.createOrder = async (req, res) => {
     try {
@@ -59,15 +49,20 @@ exports.createOrder = async (req, res) => {
             totalPrice: item.price * item.quantity
         }));
 
-        const orderTotal = orderItems.reduce((total, item) => total + item.totalPrice, 0);
+        const orderSubtotal = orderItems.reduce((total, item) => total + item.totalPrice, 0);
+        const vat = +(orderSubtotal * 0.20).toFixed(2);
+        const shipping = orderSubtotal > 50 ? 0 : 5.99;
+        const orderTotal = +(orderSubtotal + vat + shipping).toFixed(2);
 
         const newOrder = new Order({
             user: req.user.userId,
             items: orderItems,
             paymentMethod,
             pricing: {
-                subtotal: orderTotal,
-                total: orderTotal // Add tax, shipping, etc. as needed
+                subtotal: orderSubtotal,
+                tax: vat,
+                shipping: shipping,
+                total: orderTotal
             },
             shippingAddress,
             billingAddress
@@ -78,10 +73,21 @@ exports.createOrder = async (req, res) => {
         // Get user details for email
         const user = await User.findById(req.user.userId);
 
-        // Send order confirmation email
+        // Send order confirmation email (non-fatal)
         try {
+            const port = Number(process.env.SMTP_PORT || 465);
+            const secure = port === 465;
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOSTNAME,
+                port,
+                secure,
+                auth: {
+                    user: (process.env.SMTP_USER || '').replace(/'/g, ''),
+                    pass: (process.env.SMTP_PASS || '').replace(/'/g, ''),
+                },
+            });
             await transporter.sendMail({
-                from: `"HMH Global" <${process.env.SMTP_USER.replace(/'/g, "")}/>`,
+                from: `HMH Global <${(process.env.SMTP_USER || '').replace(/'/g, '')}>`,
                 to: user.email,
                 subject: "Order Confirmation - HMH Global",
                 html: `
@@ -89,13 +95,16 @@ exports.createOrder = async (req, res) => {
                     <p>Dear ${user.name},</p>
                     <p>Thank you for your order! Your order has been placed successfully.</p>
                     <p><strong>Order Number:</strong> ${newOrder.orderNumber}</p>
-                    <p><strong>Total Amount:</strong> $${orderTotal.toFixed(2)}</p>
+                    <p><strong>Subtotal:</strong> £${orderSubtotal.toFixed(2)}</p>
+                    <p><strong>VAT (20%):</strong> £${vat.toFixed(2)}</p>
+                    <p><strong>Shipping:</strong> ${shipping === 0 ? 'FREE' : `£${shipping.toFixed(2)}`}</p>
+                    <p><strong>Total Amount:</strong> £${orderTotal.toFixed(2)}</p>
                     <p>You will receive another email when your order is shipped.</p>
                     <p>Thank you for shopping with HMH Global!</p>
-                `
+                `,
             });
         } catch (emailError) {
-            console.error('Failed to send order confirmation email:', emailError);
+            console.warn('Failed to send order confirmation email (non-fatal):', emailError.message);
         }
 
         // Clear cart after placing the order

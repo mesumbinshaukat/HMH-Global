@@ -414,21 +414,21 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #f43f5e, #e11d48); /* rose-500 to rose-600 */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #d97706, #b45309);
+  background: linear-gradient(135deg, #e11d48, #be123c); /* rose-600 to rose-700 */
 }
 
 /* ========== FOCUS STYLES ========== */
-.focus\:ring-hmh-gold-500:focus {
-  --tw-ring-color: rgb(245 158 11 / 0.5);
+.focus\:ring-rose-500:focus {
+  --tw-ring-color: rgb(244 63 94 / 0.5); /* rose-500 */
 }
 
-.focus\:border-hmh-gold-500:focus {
-  border-color: rgb(245 158 11);
+.focus\:border-rose-500:focus {
+  border-color: rgb(244 63 94); /* rose-500 */
 }
 
 /* ========== CUSTOM ANIMATIONS FOR BETTER UX ========== */

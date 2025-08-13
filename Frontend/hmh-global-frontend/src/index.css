@@ -4,71 +4,71 @@
 
 @layer base {
   :root {
-    /* Premium Golden-Beige Theme inspired by HMH Global Logo */
+    /* New Color Theme: Baby Pink + Commando Green */
     --background: 0 0% 100%;
-    --foreground: 20 14% 4%;
+    --foreground: 120 40% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 20 14% 4%;
+    --card-foreground: 120 40% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 20 14% 4%;
+    --popover-foreground: 120 40% 15%;
     
-    /* Primary: Golden-beige from logo */
-    --primary: 45 100% 51%;
-    --primary-foreground: 20 14% 4%;
+    /* Primary: Baby Pink from Mindrevive */
+    --primary: 350 100% 88%;
+    --primary-foreground: 120 40% 15%;
     
-    /* Secondary: Rich black */
-    --secondary: 20 14% 4%;
-    --secondary-foreground: 45 100% 51%;
+    /* Secondary: Commando Green from OrganicLabPK */
+    --secondary: 120 40% 15%;
+    --secondary-foreground: 350 100% 88%;
     
-    /* Muted: Sophisticated gray */
-    --muted: 20 14% 96%;
-    --muted-foreground: 20 14% 45%;
+    /* Muted: Soft gray with green tint */
+    --muted: 120 20% 96%;
+    --muted-foreground: 120 40% 45%;
     
-    /* Accent: Warm accent */
-    --accent: 45 100% 96%;
-    --accent-foreground: 20 14% 4%;
+    /* Accent: Light baby pink */
+    --accent: 350 100% 96%;
+    --accent-foreground: 120 40% 15%;
     
     /* Destructive: Modern red */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     
     /* Border and Input */
-    --border: 20 14% 90%;
-    --input: 20 14% 90%;
-    --ring: 45 100% 51%;
+    --border: 120 20% 90%;
+    --input: 120 20% 90%;
+    --ring: 120 40% 15%;
     
     /* Radius */
     --radius: 0.75rem;
     
-    /* Custom HMH Global Colors */
-    --hmh-gold: 45 100% 51%;
-    --hmh-gold-light: 45 100% 61%;
-    --hmh-gold-dark: 45 100% 41%;
-    --hmh-black: 20 14% 4%;
-    --hmh-gray: 20 14% 96%;
-    --hmh-gray-dark: 20 14% 45%;
+    /* Custom Theme Colors (new scheme) */
+    --hmh-gold: 350 100% 88%;
+    --hmh-gold-light: 350 100% 92%;
+    --hmh-gold-dark: 350 100% 80%;
+    --hmh-black: 120 40% 15%;
+    --hmh-gray: 120 20% 96%;
+    --hmh-gray-dark: 120 40% 45%;
   }
 
   .dark {
-    --background: 20 14% 4%;
-    --foreground: 45 100% 96%;
-    --card: 20 14% 8%;
-    --card-foreground: 45 100% 96%;
-    --popover: 20 14% 8%;
-    --popover-foreground: 45 100% 96%;
-    --primary: 45 100% 51%;
-    --primary-foreground: 20 14% 4%;
-    --secondary: 20 14% 12%;
-    --secondary-foreground: 45 100% 96%;
-    --muted: 20 14% 12%;
-    --muted-foreground: 20 14% 65%;
-    --accent: 20 14% 12%;
-    --accent-foreground: 45 100% 96%;
+    --background: 120 40% 15%;
+    --foreground: 350 100% 96%;
+    --card: 120 40% 20%;
+    --card-foreground: 350 100% 96%;
+    --popover: 120 40% 20%;
+    --popover-foreground: 350 100% 96%;
+    --primary: 350 100% 88%;
+    --primary-foreground: 120 40% 15%;
+    --secondary: 120 40% 25%;
+    --secondary-foreground: 350 100% 96%;
+    --muted: 120 40% 25%;
+    --muted-foreground: 120 40% 65%;
+    --accent: 120 40% 25%;
+    --accent-foreground: 350 100% 96%;
     --destructive: 0 62% 30%;
-    --destructive-foreground: 45 100% 96%;
-    --border: 20 14% 12%;
-    --input: 20 14% 12%;
-    --ring: 45 100% 51%;
+    --destructive-foreground: 350 100% 96%;
+    --border: 120 40% 25%;
+    --input: 120 40% 25%;
+    --ring: 350 100% 88%;
   }
 }
 
@@ -79,7 +79,7 @@
   
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -115,7 +115,7 @@
 @layer components {
   /* Premium Button Styles */
   .btn-premium {
-    @apply relative overflow-hidden bg-gradient-to-r from-hmh-gold-400 to-hmh-gold-200 text-hmh-black-900 font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl;
+    @apply relative overflow-hidden bg-gradient-to-r from-baby-pink-500 to-baby-pink-600 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl;
   }
   
   .btn-premium::before {
@@ -129,7 +129,7 @@
 
   /* Nike-style Button */
   .btn-nike {
-    @apply relative overflow-hidden bg-black text-white font-bold py-4 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:bg-gray-900;
+    @apply relative overflow-hidden bg-commando-green-500 text-white font-bold py-4 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:bg-commando-green-600;
   }
 
   .btn-nike::before {
@@ -143,7 +143,7 @@
   
   /* Premium Card Styles */
   .card-premium {
-    @apply bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100;
+    @apply bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-baby-pink-100;
   }
 
   /* Nike-style Card */
@@ -158,22 +158,22 @@
   
   /* Gradient Text */
   .text-gradient {
-    @apply bg-gradient-to-r from-hmh-gold-500 to-hmh-gold-300 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-baby-pink-500 to-baby-pink-300 bg-clip-text text-transparent;
   }
 
   .text-gradient-nike {
-    @apply bg-gradient-to-r from-black via-gray-800 to-black bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-commando-green-500 via-commando-green-600 to-commando-green-500 bg-clip-text text-transparent;
   }
   
   /* Animated Background */
   .bg-animated {
-    background: linear-gradient(-45deg, #f4f1eb, #e8e0d0, #d4c4a8, #f4f1eb);
+    background: linear-gradient(-45deg, #FFF0F5, #FFE1F0, #FFC3E1, #FFF0F5);
     background-size: 400% 400%;
     animation: gradientShift 15s ease infinite;
   }
 
   .bg-animated-nike {
-    background: linear-gradient(-45deg, #000000, #1a1a1a, #333333, #000000);
+    background: linear-gradient(-45deg, #4A5D23, #3F4E1E, #343F19, #4A5D23);
     background-size: 400% 400%;
     animation: gradientShift 15s ease infinite;
   }
@@ -258,19 +258,19 @@
   
   /* Glow Effect */
   .glow {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 0 20px rgba(255, 182, 193, 0.3);
   }
   
   .glow:hover {
-    box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 30px rgba(255, 182, 193, 0.5);
   }
 
   .glow-nike {
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 20px rgba(74, 93, 35, 0.3);
   }
   
   .glow-nike:hover {
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 30px rgba(74, 93, 35, 0.5);
   }
 
   /* Parallax Effect */
@@ -310,7 +310,7 @@
 
   .product-card::before {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-hmh-gold-500/10 to-transparent opacity-0 transition-opacity duration-500;
+    @apply absolute inset-0 bg-gradient-to-br from-baby-pink-500/10 to-transparent opacity-0 transition-opacity duration-500;
   }
 
   .product-card:hover::before {
@@ -332,7 +332,7 @@
 
   .product-card-nike::before {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-black/5 to-transparent opacity-0 transition-opacity duration-300;
+    @apply absolute inset-0 bg-gradient-to-br from-commando-green-500/5 to-transparent opacity-0 transition-opacity duration-300;
   }
 
   .product-card-nike:hover::before {
@@ -341,7 +341,7 @@
 
   /* Hero Section Enhancements */
   .hero-gradient {
-    background: linear-gradient(135deg, #000000 0%, #1a1a1a 25%, #333333 50%, #1a1a1a 75%, #000000 100%);
+    background: linear-gradient(135deg, #4A5D23 0%, #3F4E1E 25%, #343F19 50%, #3F4E1E 75%, #4A5D23 100%);
     background-size: 400% 400%;
     animation: heroGradient 8s ease infinite;
   }
@@ -353,12 +353,12 @@
 
   /* Interactive Navigation */
   .nav-link {
-    @apply relative text-hmh-black-900 hover:text-hmh-gold-600 transition-colors duration-300 font-semibold uppercase tracking-wide;
+    @apply relative text-commando-green-900 hover:text-baby-pink-600 transition-colors duration-300 font-semibold uppercase tracking-wide;
   }
 
   .nav-link::after {
     content: '';
-    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-hmh-gold-500 transition-all duration-300;
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-baby-pink-500 transition-all duration-300;
   }
 
   .nav-link:hover::after {
@@ -367,12 +367,12 @@
 
   /* Nike-style Navigation */
   .nav-link-nike {
-    @apply relative text-black hover:text-gray-600 transition-colors duration-300 font-bold uppercase tracking-wider;
+    @apply relative text-commando-green-500 hover:text-commando-green-600 transition-colors duration-300 font-bold uppercase tracking-wider;
   }
 
   .nav-link-nike::after {
     content: '';
-    @apply absolute bottom-0 left-0 w-0 h-1 bg-black transition-all duration-300;
+    @apply absolute bottom-0 left-0 w-0 h-1 bg-commando-green-500 transition-all duration-300;
   }
 
   .nav-link-nike:hover::after {
@@ -386,7 +386,7 @@
 
   .search-bar::before {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-r from-hmh-gold-500/10 to-transparent rounded-full opacity-0 transition-opacity duration-300;
+    @apply absolute inset-0 bg-gradient-to-r from-baby-pink-500/10 to-transparent rounded-full opacity-0 transition-opacity duration-300;
   }
 
   .search-bar:focus-within::before {

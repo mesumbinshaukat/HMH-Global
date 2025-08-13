@@ -1,6 +1,43 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 
+// Fast product suggestions for search modal
+exports.suggestProducts = async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q || String(q).trim().length === 0) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        const query = String(q).trim();
+        // Use case-insensitive regex on name and brand; only active products
+        const suggestions = await Product.find({
+            isActive: true,
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { brand: { $regex: query, $options: 'i' } },
+            ],
+        })
+        .select('name brand slug images price')
+        .limit(8)
+        .lean();
+
+        // Normalize response, ensure we send first image path if available
+        const data = suggestions.map(s => ({
+            id: s._id,
+            name: s.name,
+            brand: s.brand,
+            slug: s.slug,
+            image: Array.isArray(s.images) && s.images.length > 0 ? s.images[0] : null,
+            price: s.price,
+        }));
+
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // Create product
 exports.createProduct = async (req, res) => {
     try {

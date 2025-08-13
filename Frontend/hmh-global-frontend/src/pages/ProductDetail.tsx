@@ -83,7 +83,7 @@ const ProductDetail: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-hmh-gold-400 to-hmh-gold-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-gradient-to-br from-rose-400 to-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Sparkles className="w-10 h-10 text-hmh-black-900" />
           </div>
           <h1 className="text-3xl font-black text-hmh-black-900 mb-4">Product Not Found</h1>
@@ -146,9 +146,9 @@ const ProductDetail: React.FC = () => {
   }
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
     }).format(price)
   }
 
@@ -212,7 +212,7 @@ const ProductDetail: React.FC = () => {
           <div className="flex items-center space-x-2 text-sm text-hmh-black-600">
             <button 
               onClick={() => navigate('/products')}
-              className="hover:text-hmh-gold-600 transition-colors duration-200"
+              className="hover:text-rose-600 transition-colors duration-200"
             >
               Products
             </button>
@@ -228,7 +228,7 @@ const ProductDetail: React.FC = () => {
           {/* Product Images */}
           <div className="space-y-6">
             <div className="relative">
-              <div className="aspect-square bg-gradient-to-br from-hmh-gold-100 to-hmh-gold-200 rounded-2xl overflow-hidden">
+              <div className="aspect-square bg-gradient-to-br from-rose-100 to-rose-200 rounded-2xl overflow-hidden">
                 {product.images?.[selectedImage] ? (
                   <img
 src={`${process.env.REACT_APP_API_URL}${product.images[selectedImage]}`}
@@ -238,7 +238,7 @@ src={`${process.env.REACT_APP_API_URL}${product.images[selectedImage]}`}
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
-                      <Sparkles className="w-16 h-16 text-hmh-gold-500 mx-auto mb-4" />
+                      <Sparkles className="w-16 h-16 text-rose-500 mx-auto mb-4" />
                       <span className="text-hmh-black-600">Product Image</span>
                     </div>
                   </div>
@@ -269,8 +269,8 @@ src={`${process.env.REACT_APP_API_URL}${product.images[selectedImage]}`}
                     onClick={() => setSelectedImage(index)}
                     className={`aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                       selectedImage === index 
-                        ? 'border-hmh-gold-500 shadow-lg' 
-                        : 'border-gray-200 hover:border-hmh-gold-300'
+                        ? 'border-rose-500 shadow-lg' 
+                        : 'border-gray-200 hover:border-rose-300'
                     }`}
                   >
                     <img
@@ -314,7 +314,7 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
                   </button>
                   <button
                     onClick={handleShare}
-                    className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-hmh-gold-100 hover:text-hmh-gold-600 transition-all duration-200"
+                    className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-rose-100 hover:text-rose-600 transition-all duration-200"
                   >
                     <ShareIcon className="w-5 h-5" />
                   </button>
@@ -327,7 +327,7 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
               
               <div className="flex items-center space-x-4 mb-6">
                 <div className="flex items-center space-x-1">
-                  <Star className="w-5 h-5 text-hmh-gold-500 fill-current" />
+                  <Star className="w-5 h-5 text-rose-500 fill-current" />
                   <span className="text-lg font-bold text-hmh-black-900">
                     {typeof product.averageRating === 'number' ? product.averageRating.toFixed(1) : '0.0'}
                   </span>
@@ -387,7 +387,7 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
               <Button
                 onClick={handleAddToCart}
                 disabled={product.stockQuantity === 0 || addToCartMutation.isPending}
-                className="w-full bg-gradient-to-r from-hmh-gold-500 to-hmh-gold-600 hover:from-hmh-gold-600 hover:to-hmh-gold-700 text-hmh-black-900 font-bold py-4 text-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
                 {addToCartMutation.isPending ? (
                   <RefreshCwIcon className="w-5 h-5 mr-2 animate-spin" />
@@ -401,17 +401,17 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
             {/* Features */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-100">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-hmh-gold-100 rounded-full flex items-center justify-center">
-                  <TruckIcon className="w-5 h-5 text-hmh-gold-600" />
+                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
+                  <TruckIcon className="w-5 h-5 text-rose-600" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-hmh-black-900">Free Shipping</p>
-                  <p className="text-xs text-hmh-black-600">On orders over $50</p>
+                  <p className="text-xs text-hmh-black-600">On orders over £50</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-hmh-gold-100 rounded-full flex items-center justify-center">
-                  <ShieldCheckIcon className="w-5 h-5 text-hmh-gold-600" />
+                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
+                  <ShieldCheckIcon className="w-5 h-5 text-rose-600" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-hmh-black-900">Secure Payment</p>
@@ -419,8 +419,8 @@ src={`${process.env.REACT_APP_API_URL}${image}`}
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-hmh-gold-100 rounded-full flex items-center justify-center">
-                  <RefreshCwIcon className="w-5 h-5 text-hmh-gold-600" />
+                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
+                  <RefreshCwIcon className="w-5 h-5 text-rose-600" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-hmh-black-900">Easy Returns</p>

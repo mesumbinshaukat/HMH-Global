@@ -3,16 +3,6 @@ const bcryptjs = require("bcryptjs");
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOSTNAME,
-    port: process.env.SMTP_PORT,
-    secure: true,
-    auth: {
-        user: process.env.SMTP_USER.replace(/'/g, ""),
-        pass: process.env.SMTP_PASS.replace(/'/g, "")
-    }
-});
-
 const createUser = async (req, res) => {
     console.log('[UserController] createUser called. body:', req.body);
     try {
@@ -43,45 +33,19 @@ const createUser = async (req, res) => {
             name,
             email, // Already lowercased
             password: hashedPassword,
-            emailVerified: isAdmin ? true : false,
+            // TEMP: Disable email verification site-wide per request
+            emailVerified: true,
             role
         });
 
         await newUser.save();
-
-        if (!isAdmin) {
-            const verificationToken = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-            const verifyLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
-
-            await transporter.sendMail({
-                from: `"HMH Global" <${process.env.SMTP_USER.replace(/'/g, "")}>`,
-                to: newUser.email,
-                subject: "Action Required: Confirm Your Email",
-                text: `Hello ${newUser.name}, please verify your email by visiting: ${verifyLink}`,
-                html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>Verify Your Email</title>
-        </head>
-        <body>
-          <h2>Hello ${newUser.name},</h2>
-          <p>Thanks for signing up for HMH Global. Please verify your email within 24 hours by clicking the link below:</p>
-          <a href="${verifyLink}" style="padding: 10px 15px; background-color: #4CAF50; color: white; text-decoration: none;">Verify Email</a>
-          <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p>${verifyLink}</p>
-        </body>
-        </html>            
-                `
-            });
-        }
+        // TEMP: Skipping verification email per request. TODO: Re-enable when ready.
 
         // Split name into firstName and lastName
         const [firstName, ...rest] = (newUser.name || '').split(' ');
         const lastName = rest.join(' ');
         res.status(201).json({ 
-            message: isAdmin ? "Admin user created." : "User created. Please verify your email.",
+            message: isAdmin ? "Admin user created." : "Account created successfully.",
             user: {
                 id: newUser._id,
                 email: newUser.email,
@@ -94,6 +58,7 @@ const createUser = async (req, res) => {
                 isEmailVerified: newUser.emailVerified
             }
         });
+
     } catch (error) {
         console.error('[UserController] createUser error:', error);
         res.status(500).json({ message: error.message });
@@ -101,6 +66,7 @@ const createUser = async (req, res) => {
 };
 
 const verifyEmail = async (req, res) => {
+    // TODO: Remove this function when email verification is disabled
     try {
         const { token } = req.params;
         // console.log(token);
@@ -130,24 +96,34 @@ const loginUser = async (req, res) => {
         console.log('[UserController] loginUser found user:', user);
         if (!user) return res.status(401).json({ message: 'Invalid email' });
 
-        // Allow admin login even if email not verified
-        if (!user.emailVerified && user.role !== 'admin') return res.status(401).json({ message: 'Please verify your email first' });
+        // TEMP: Email verification disabled globally. Do not block login based on emailVerified.
 
         const isPasswordValid = await bcryptjs.compare(password, user.password);
         if (!isPasswordValid) return res.status(401).json({ message: 'Invalid password' });
 
         const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET);
 
-        // Send login notification email (non-blocking)
+        // Send login notification email (non-blocking, fail-safe)
         try {
+            const port = Number(process.env.SMTP_PORT || 465);
+            const secure = port === 465; // true for 465, false for 587/25
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOSTNAME,
+                port,
+                secure,
+                auth: {
+                    user: (process.env.SMTP_USER || '').replace(/'/g, ''),
+                    pass: (process.env.SMTP_PASS || '').replace(/'/g, ''),
+                },
+            });
             await transporter.sendMail({
                 from: `"HMH Global" <${process.env.SMTP_USER}>`,
                 to: user.email,
                 subject: "New Login Alert",
-                html: `<p>Hello ${user.name},</p><p>You just logged in from a new device.</p>`
+                html: `<p>Hello ${user.name},</p><p>You just logged in from a new device.</p>`,
             });
         } catch (emailError) {
-            console.warn('[UserController] Login email notification failed:', emailError.message);
+            console.warn('[UserController] Login email notification failed (non-fatal):', emailError.message);
             // Continue with login process even if email fails
         }
 

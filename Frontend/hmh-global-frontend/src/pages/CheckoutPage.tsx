@@ -81,7 +81,7 @@ const CheckoutPage: React.FC = () => {
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const tax = subtotal * 0.08
+  const tax = subtotal * 0.20
   const shipping = subtotal > 50 ? 0 : 5.99
   const total = subtotal + tax + shipping
 
@@ -497,9 +497,9 @@ const CheckoutPage: React.FC = () => {
                           />
                           <div className="flex-1">
                             <h4 className="font-medium">{item.product.name}</h4>
-                            <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                          <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                           </div>
-                          <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="font-medium">£{(item.price * item.quantity).toFixed(2)}</p>
                         </div>
                       ))}
                     </div>
@@ -554,19 +554,19 @@ const CheckoutPage: React.FC = () => {
                   <div className="border-t pt-2 space-y-2">
                     <div className="flex justify-between">
                       <span>Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>£{subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Tax</span>
-                      <span>${tax.toFixed(2)}</span>
+                      <span>VAT (20%)</span>
+                      <span>£{tax.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Shipping</span>
-                      <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                      <span>{shipping === 0 ? 'FREE' : `£${shipping.toFixed(2)}`}</span>
                     </div>
                     <div className="flex justify-between font-bold text-lg border-t pt-2">
                       <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
+                      <span>£{total.toFixed(2)}</span>
                     </div>
                   </div>
                   
@@ -577,7 +577,7 @@ const CheckoutPage: React.FC = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <TruckIcon className="w-4 h-4" />
-                      <span>Free shipping on orders over $50</span>
+                      <span>Free shipping on orders over £50</span>
                     </div>
                   </div>
                 </CardContent>

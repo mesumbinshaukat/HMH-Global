@@ -759,27 +759,27 @@ exports.generateInvoice = async (req, res) => {
                             <tr>
                                 <td>${item.product?.name || item.name}</td>
                                 <td>${item.quantity}</td>
-                                <td>$${item.price.toFixed(2)}</td>
-                                <td>$${(item.price * item.quantity).toFixed(2)}</td>
+                                <td>£${item.price.toFixed(2)}</td>
+                                <td>£${(item.price * item.quantity).toFixed(2)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td colspan="3" class="total">Subtotal:</td>
-                            <td class="total">$${(order.pricing?.subtotal || 0).toFixed(2)}</td>
+                            <td class="total">£${(order.pricing?.subtotal || 0).toFixed(2)}</td>
                         </tr>
                         <tr>
                             <td colspan="3" class="total">Tax:</td>
-                            <td class="total">$${(order.pricing?.tax || 0).toFixed(2)}</td>
+                            <td class="total">£${(order.pricing?.tax || 0).toFixed(2)}</td>
                         </tr>
                         <tr>
                             <td colspan="3" class="total">Shipping:</td>
-                            <td class="total">$${(order.pricing?.shipping || 0).toFixed(2)}</td>
+                            <td class="total">£${(order.pricing?.shipping || 0).toFixed(2)}</td>
                         </tr>
                         <tr>
                             <td colspan="3" class="total">Total:</td>
-                            <td class="total">$${(order.pricing?.total || 0).toFixed(2)}</td>
+                            <td class="total">£${(order.pricing?.total || 0).toFixed(2)}</td>
                         </tr>
                     </tfoot>
                 </table>

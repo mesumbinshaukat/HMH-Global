@@ -6,7 +6,12 @@ const path = require('path');
 // Connect to MongoDB
 async function connectToMongoDB() {
     try {
-        await mongoose.connect('mongodb://localhost:27017/hmh-global');
+        const uri = process.env.MONGO_URI;
+        if (!uri) {
+            console.error('[updateProductVisibility_fixed] MONGO_URI not set in environment.');
+            process.exit(1);
+        }
+        await mongoose.connect(uri);
         console.log('[Script] Connected to MongoDB');
     } catch (error) {
         console.error('[Script] MongoDB connection error:', error.message);

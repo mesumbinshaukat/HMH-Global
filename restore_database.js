@@ -1,5 +1,6 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const { MongoClient } = require('mongodb');
+require('dotenv').config();
 
 async function restoreDatabase() {
   try {
@@ -8,7 +9,8 @@ async function restoreDatabase() {
     
     console.log(`📦 Found ${backup.products?.length || 0} products and ${backup.categories?.length || 0} categories in backup`);
     
-    const client = new MongoClient('mongodb://localhost:27017');
+    const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/hmh-global';
+    const client = new MongoClient(uri);
     await client.connect();
     console.log('🔗 Connected to MongoDB');
     

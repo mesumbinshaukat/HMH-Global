@@ -50,7 +50,32 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // HMH Global Custom Colors
+        // Reference Website Colors
+        'baby-pink': {
+          50: '#FFF0F5',
+          100: '#FFE1F0',
+          200: '#FFC3E1',
+          300: '#FFA5D2',
+          400: '#FF87C3',
+          500: '#FFB6C1', // Exact baby pink from Mindrevive
+          600: '#FF69B4',
+          700: '#FF4DA6',
+          800: '#FF3399',
+          900: '#FF1A8C',
+        },
+        'commando-green': {
+          50: '#F2F4F0',
+          100: '#E6E9E1',
+          200: '#CCD3C3',
+          300: '#B3BDA5',
+          400: '#99A787',
+          500: '#4A5D23', // Exact commando green from OrganicLabPK
+          600: '#3F4E1E',
+          700: '#343F19',
+          800: '#2A3014',
+          900: '#1F210F',
+        },
+        // HMH Global Custom Colors (updated with new theme)
         'hmh-gold': {
           50: '#fefce8',
           100: '#fef9c3',

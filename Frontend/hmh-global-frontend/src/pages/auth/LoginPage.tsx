@@ -72,23 +72,25 @@ const LoginPage: React.FC = () => {
         <meta name="description" content="Login to your HMH Global account" />
       </Helmet>
       
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-baby-pink-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md card-premium">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Sign in to HMH Global</CardTitle>
-            <p className="text-gray-600 mt-2">Welcome back! Please sign in to your account</p>
+            <CardTitle className="text-2xl font-bold text-commando-green-900">Sign in to HMH Global</CardTitle>
+            <p className="text-commando-green-600 mt-2">Welcome back! Please sign in to your account</p>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="text-commando-green-700">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="Enter your email"
                   {...form.register('email')}
-                  className={form.formState.errors.email ? 'border-red-500' : ''}
+                  className={`border-commando-green-200 focus:border-baby-pink-500 focus:ring-baby-pink-200 text-commando-green-900 placeholder-commando-green-500 ${
+                    form.formState.errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''
+                  }`}
                 />
                 {form.formState.errors.email && (
                   <p className="text-red-500 text-sm">{form.formState.errors.email.message}</p>
@@ -96,47 +98,46 @@ const LoginPage: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-commando-green-700">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     {...form.register('password')}
-                    className={form.formState.errors.password ? 'border-red-500 pr-10' : 'pr-10'}
+                    className={`pr-10 border-commando-green-200 focus:border-baby-pink-500 focus:ring-baby-pink-200 text-commando-green-900 placeholder-commando-green-500 ${
+                      form.formState.errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''
+                    }`}
                   />
-                  <button
+                  <Button
                     type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-0 top-0 h-full px-3 text-commando-green-500 hover:text-commando-green-700 hover:bg-commando-green-50"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
                 </div>
                 {form.formState.errors.password && (
                   <p className="text-red-500 text-sm">{form.formState.errors.password.message}</p>
                 )}
               </div>
               
-              <div className="flex items-center justify-between">
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-primary hover:text-primary/80"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-              
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Signing in...' : 'Sign in'}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-baby-pink-500 to-baby-pink-600 hover:from-baby-pink-600 hover:to-baby-pink-700 text-white rounded-full py-3 transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50"
+              >
+                {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
             
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-commando-green-600">
                 Don't have an account?{' '}
-                <Link to="/register" className="text-primary hover:text-primary/80 font-medium">
-                  Sign up
+                <Link to="/register" className="text-baby-pink-600 hover:text-baby-pink-700 font-semibold underline">
+                  Sign up here
                 </Link>
               </p>
             </div>

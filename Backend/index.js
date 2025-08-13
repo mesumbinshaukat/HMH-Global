@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const app = express();
 const connectDB = require('./config/database');
 const path = require('path');
+const mongoose = require('mongoose');
 
 // CORS options
 const corsOptions = {
@@ -39,6 +40,30 @@ app.use((req, res, next) => {
 
 // Routes
 app.get("/", (req, res) => res.send("HMH Global E-commerce API Running"));
+app.get('/api/health', (req, res) => {
+    const state = mongoose.connection && typeof mongoose.connection.readyState === 'number'
+        ? mongoose.connection.readyState
+        : -1;
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    res.json({
+        status: 'ok',
+        db: state,
+        nodeEnv: process.env.NODE_ENV || 'development',
+        time: new Date().toISOString(),
+    });
+});
+// Fallback health route without /api prefix (covers proxy misroutes)
+app.get('/health', (req, res) => {
+    const state = mongoose.connection && typeof mongoose.connection.readyState === 'number'
+        ? mongoose.connection.readyState
+        : -1;
+    res.json({
+        status: 'ok',
+        db: state,
+        nodeEnv: process.env.NODE_ENV || 'development',
+        time: new Date().toISOString(),
+    });
+});
 app.use("/api/users", require('./routes/UserRoutes'));
 app.use("/api/categories", require('./routes/CategoryRoutes'));
 app.use("/api/products", require('./routes/productRoutes'));

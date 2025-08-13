@@ -24,7 +24,11 @@ const http = require('http');
 const ExcelJS = require('exceljs');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
-require('dotenv').config({ path: path.join(__dirname, '../.env.production') });
+// Prefer local .env (development); fallback to .env.production if needed
+const envPath = fs.existsSync(path.join(__dirname, '../.env'))
+  ? path.join(__dirname, '../.env')
+  : path.join(__dirname, '../.env.production')
+require('dotenv').config({ path: envPath });
 const EventEmitter = require('events');
 const scraperEmitter = new EventEmitter();
 

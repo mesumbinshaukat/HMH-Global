@@ -5,6 +5,16 @@ import { HelmetProvider } from 'react-helmet-async'
 import { Toaster } from 'sonner'
 import Layout from './components/layout/Layout'
 import HomePage from './pages/HomePage'
+import AboutPage from './pages/AboutPage'
+import ContactPage from './pages/ContactPage'
+import FAQPage from './pages/FAQPage'
+import ShippingInfoPage from './pages/ShippingInfoPage'
+import ReturnsPage from './pages/ReturnsPage'
+import SupportPage from './pages/SupportPage'
+import TrackOrderPage from './pages/TrackOrderPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsPage from './pages/TermsPage'
+import CookiePolicyPage from './pages/CookiePolicyPage'
 import ProductCatalog from './pages/ProductCatalog'
 import ProductDetail from './pages/ProductDetail'
 import CartPage from './pages/CartPage'
@@ -41,6 +51,17 @@ function App() {
               <Route path="/products/:id" element={<ProductDetail />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              {/* Info pages */}
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/shipping" element={<ShippingInfoPage />} />
+              <Route path="/returns" element={<ReturnsPage />} />
+              <Route path="/support" element={<SupportPage />} />
+              <Route path="/track-order" element={<TrackOrderPage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/cookies" element={<CookiePolicyPage />} />
               
               {/* Protected routes */}
               <Route path="/cart" element={

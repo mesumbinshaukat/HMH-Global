@@ -7,8 +7,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment variables
-.env
-Backend/.env
+# .env
+# Backend/.env
 Frontend/*/.env
 .env.local
 .env.development.local
