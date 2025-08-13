@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const User = require('../models/User');
+const Product = require('../models/Product');
 const nodemailer = require('nodemailer');
 
 // Create order
@@ -113,6 +114,179 @@ exports.createOrder = async (req, res) => {
 
         res.status(201).json({ success: true, order: newOrder, message: 'Order placed successfully' });
     } catch (error) {
+        res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    }
+};
+
+// Create guest order (without authentication)
+exports.createGuestOrder = async (req, res) => {
+    try {
+        const { 
+            paymentMethod, 
+            shippingAddress, 
+            billingAddress,
+            guestInfo,
+            items
+        } = req.body;
+
+        // Validation for guest orders
+        if (!paymentMethod) {
+            return res.status(400).json({ success: false, message: 'Payment method is required' });
+        }
+
+        if (!shippingAddress || !shippingAddress.firstName || !shippingAddress.lastName || 
+            !shippingAddress.address1 || !shippingAddress.city || !shippingAddress.state || 
+            !shippingAddress.zipCode || !shippingAddress.country) {
+            return res.status(400).json({ success: false, message: 'Complete shipping address is required' });
+        }
+
+        if (!billingAddress || !billingAddress.firstName || !billingAddress.lastName || 
+            !billingAddress.address1 || !billingAddress.city || !billingAddress.state || 
+            !billingAddress.zipCode || !billingAddress.country) {
+            return res.status(400).json({ success: false, message: 'Complete billing address is required' });
+        }
+
+        if (!guestInfo || !guestInfo.email || !guestInfo.name) {
+            return res.status(400).json({ success: false, message: 'Guest email and name are required' });
+        }
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ success: false, message: 'Order items are required' });
+        }
+
+        // Validate and process items
+        const orderItems = [];
+        let orderSubtotal = 0;
+
+        for (const item of items) {
+            const product = await Product.findById(item.productId);
+            if (!product) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Product not found: ${item.productId}` 
+                });
+            }
+
+            if (!product.isActive) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Product is not available: ${product.name}` 
+                });
+            }
+
+            // Check inventory
+            if (product.inventory.trackQuantity && product.inventory.quantity < item.quantity) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Insufficient stock for ${product.name}. Available: ${product.inventory.quantity}` 
+                });
+            }
+
+            const effectivePrice = product.salePrice && product.salePrice < product.price ? 
+                product.salePrice : product.price;
+            const itemTotal = effectivePrice * item.quantity;
+
+            orderItems.push({
+                product: product._id,
+                name: product.name,
+                sku: product.sku,
+                price: effectivePrice,
+                quantity: item.quantity,
+                totalPrice: itemTotal
+            });
+
+            orderSubtotal += itemTotal;
+        }
+
+        // Calculate pricing with 20% VAT
+        const vat = +(orderSubtotal * 0.20).toFixed(2);
+        const shipping = paymentMethod === 'cash-on-delivery' ? 
+            (orderSubtotal > 50 ? 2.99 : 7.99) : // COD fee
+            (orderSubtotal > 50 ? 0 : 5.99);     // Regular shipping
+        const orderTotal = +(orderSubtotal + vat + shipping).toFixed(2);
+
+        // Create the order
+        const newOrder = new Order({
+            user: null, // No user for guest orders
+            isGuestOrder: true,
+            guestInfo: {
+                email: guestInfo.email.toLowerCase().trim(),
+                name: guestInfo.name.trim(),
+                phone: guestInfo.phone ? guestInfo.phone.trim() : undefined
+            },
+            items: orderItems,
+            paymentMethod,
+            pricing: {
+                subtotal: orderSubtotal,
+                tax: vat,
+                shipping: shipping,
+                total: orderTotal
+            },
+            shippingAddress,
+            billingAddress,
+            shippingMethod: paymentMethod === 'cash-on-delivery' ? 'cod' : 'standard'
+        });
+
+        await newOrder.save();
+
+        // Update product inventory
+        for (const item of orderItems) {
+            const product = await Product.findById(item.product);
+            if (product.inventory.trackQuantity) {
+                product.inventory.quantity -= item.quantity;
+                await product.save();
+            }
+        }
+
+        // Send order confirmation email (non-fatal)
+        try {
+            const port = Number(process.env.SMTP_PORT || 465);
+            const secure = port === 465;
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOSTNAME,
+                port,
+                secure,
+                auth: {
+                    user: (process.env.SMTP_USER || '').replace(/'/g, ''),
+                    pass: (process.env.SMTP_PASS || '').replace(/'/g, ''),
+                },
+            });
+
+            await transporter.sendMail({
+                from: `HMH Global <${(process.env.SMTP_USER || '').replace(/'/g, '')}>`,
+                to: guestInfo.email,
+                subject: "Order Confirmation - HMH Global",
+                html: `
+                    <h2>Order Confirmation</h2>
+                    <p>Dear ${guestInfo.name},</p>
+                    <p>Thank you for your order! Your order has been placed successfully.</p>
+                    <p><strong>Order Number:</strong> ${newOrder.orderNumber}</p>
+                    <p><strong>Subtotal:</strong> £${orderSubtotal.toFixed(2)}</p>
+                    <p><strong>VAT (20%):</strong> £${vat.toFixed(2)}</p>
+                    <p><strong>Shipping:</strong> ${shipping === 0 ? 'FREE' : `£${shipping.toFixed(2)}`}</p>
+                    <p><strong>Payment Method:</strong> ${paymentMethod === 'cash-on-delivery' ? 'Cash on Delivery (COD)' : paymentMethod.replace('-', ' ').toUpperCase()}</p>
+                    <p><strong>Total Amount:</strong> £${orderTotal.toFixed(2)}</p>
+                    <h3>Order Items:</h3>
+                    <ul>
+                        ${orderItems.map(item => 
+                            `<li>${item.name} (SKU: ${item.sku}) - Qty: ${item.quantity} - £${item.totalPrice.toFixed(2)}</li>`
+                        ).join('')}
+                    </ul>
+                    <p>You will receive another email when your order is shipped.</p>
+                    <p>Thank you for shopping with HMH Global!</p>
+                `,
+            });
+        } catch (emailError) {
+            console.warn('Failed to send guest order confirmation email (non-fatal):', emailError.message);
+        }
+
+        res.status(201).json({ 
+            success: true, 
+            data: newOrder, 
+            message: 'Order placed successfully! You will receive a confirmation email shortly.' 
+        });
+    } catch (error) {
+        console.error('Guest checkout error:', error);
         res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
     }
 };

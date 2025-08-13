@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
     createOrder,
+    createGuestOrder,
     getUserOrders,
     getOrderById,
     cancelOrder,
@@ -11,7 +12,10 @@ const {
 const authMiddleware = require('../middleware/auth');
 const roleMiddleware = require('../middleware/role');
 
-// All routes require authentication
+// Public guest checkout route (no authentication required)
+router.post('/guest', createGuestOrder);
+
+// All other routes require authentication
 router.use(authMiddleware);
 
 // Admin-specific routes (put these BEFORE parameterized routes)

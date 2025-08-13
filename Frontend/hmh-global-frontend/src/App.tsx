@@ -22,6 +22,8 @@ import CheckoutPage from './pages/CheckoutPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
+import GuestCheckoutPage from './pages/GuestCheckoutPage'
+import OrderSuccessPage from './pages/OrderSuccessPage'
 import OrdersPage from './pages/OrdersPage'
 import OrderDetail from './pages/OrderDetail'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -63,17 +65,17 @@ function App() {
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/cookies" element={<CookiePolicyPage />} />
               
+              {/* Guest checkout routes */}
+              <Route path="/guest-checkout" element={<GuestCheckoutPage />} />
+              <Route path="/order-success" element={<OrderSuccessPage />} />
+              
               {/* Protected routes */}
               <Route path="/cart" element={
                 <ProtectedRoute>
                   <CartPage />
                 </ProtectedRoute>
               } />
-              <Route path="/checkout" element={
-                <ProtectedRoute>
-                  <CheckoutPage />
-                </ProtectedRoute>
-              } />
+              <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <ProfilePage />

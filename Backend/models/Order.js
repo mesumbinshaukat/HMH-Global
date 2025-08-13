@@ -89,7 +89,28 @@ const orderSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false  // Allow guest orders
+    },
+    // Guest user information (when user is not registered)
+    guestInfo: {
+        email: {
+            type: String,
+            trim: true,
+            lowercase: true
+        },
+        name: {
+            type: String,
+            trim: true
+        },
+        phone: {
+            type: String,
+            trim: true
+        }
+    },
+    // Flag to identify guest orders
+    isGuestOrder: {
+        type: Boolean,
+        default: false
     },
     items: [orderItemSchema],
     status: {
